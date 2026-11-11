@@ -424,6 +424,10 @@ code{font-family:ui-monospace,"Cascadia Mono",Consolas,monospace;font-size:.9em;
         <input id="hookUrl" type="text" readonly class="mono" style="flex:1;background:var(--panel-2)">
         <button class="btn" id="btnCopyHook">复制</button>
       </div>
+      <div class="row" id="hookIpRow" style="gap:8px;margin-top:12px;display:none">
+        <span class="hint" style="margin:0">本机地址</span>
+        <select id="hookIp" style="width:auto;min-width:240px"></select>
+      </div>
       <p class="hint" id="hookHint"></p>
     </div>
 
@@ -470,14 +474,43 @@ document.querySelectorAll('nav button').forEach(b => b.onclick = () => {
   if(load) load().catch(e => { if(e.message!=='unauthorized') tip('刷新失败：'+e.message); });
 });
 
-function hookUrl(){ return 'http://<电脑局域网IP>:'+(STATE.port||8787)+(STATE.hook_path||'/hook'); }
+// 手机上要填的地址必须是"手机能访问到的那个"。电脑常有多张网卡（WiFi + 有线 + 虚拟网卡），
+// 所以候选由后端枚举好，前端只负责选一个、拼成 URL
+let IPS = [], ipPick = 0;
+const IP_PLACEHOLDER = '<电脑局域网IP>';
+function hookUrl(){
+  const ip = IPS[ipPick] ? IPS[ipPick].ip : IP_PLACEHOLDER;
+  return 'http://'+ip+':'+(STATE.port||8787)+(STATE.hook_path||'/hook');
+}
+function renderHook(){
+  $('hookUrl').value = hookUrl();
+  const many = IPS.length > 1;
+  $('hookIpRow').style.display = many ? 'flex' : 'none';
+  if(many){
+    $('hookIp').innerHTML = IPS.map((a,i) =>
+      `<option value="${i}"${i===ipPick?' selected':''} title="${esc(a.name||'')}">${esc(a.ip)} · ${a.wifi?'无线':'有线 / 其它'}</option>`).join('');
+  }
+  const listen = String(STATE.listen||'');
+  const loopback = !listen || listen.startsWith('127.') || listen === 'localhost';
+  let h;
+  if(!IPS.length){
+    h = '没有检测到局域网地址。确认电脑已连上 WiFi 或网线，再把上面地址里的 '+IP_PLACEHOLDER+' 换成 ipconfig 里「IPv4 地址」那一项。';
+  } else if(loopback){
+    h = '当前只监听 '+listen+'，手机访问不到这个地址。把 config.json 的 listen 改成 0.0.0.0 再重启（端口、Webhook 路径的改动同样要重启才生效）。';
+  } else {
+    h = '已自动填入本机地址，手机与电脑连同一个 WiFi / 局域网即可。'
+      + (many ? ' 有多张网卡时选与手机同网段的那个。' : '')
+      + ' 手机仍连不上，多半是 Windows 防火墙拦了端口，见 README「网络与防火墙」。';
+  }
+  $('hookHint').textContent = h;
+}
 
 async function boot(){
   try{
     STATE = await api('/api/state');
     $('statusText').textContent = '接收端在线 · 端口 ' + STATE.port;
     $('subTitle').textContent = 'v'+STATE.version+' · '+(STATE.secret_set?'已启用加签':'未启用加签')+' · '+STATE.rule_count+' 条规则';
-    $('hookUrl').value = hookUrl(); $('hookHint').textContent = '局域网内其它设备用这个地址；手机与电脑需在同一网络。';
+    IPS = STATE.local_ips || []; ipPick = 0; renderHook();
     $('gate').style.display='none';
     await Promise.all([loadRecent(), loadRules(), loadStats(), loadSettings()]);
   }catch(e){ showGate('无法连接接收端：'+e.message); }
@@ -634,8 +667,10 @@ async function loadSettings(){
   $('s_retention_days').value=s.retention_days; $('s_mask_content').checked=s.mask_content;
   $('s_keep_unmatched').checked=s.keep_unmatched; $('s_autostart').checked=s.autostart;
   $('s_secret').placeholder = s.secret_set ? '已配置（留空表示不修改）' : '与手机端 Webhook 通道一致';
-  $('hookUrl').value=hookUrl();
+  // 网卡热插拔（插网线、连 VPN）后再次进设置页就能拿到新候选；原来的选择还有效就留着
+  IPS = s.local_ips || []; if(ipPick >= IPS.length) ipPick = 0; renderHook();
 }
+$('hookIp').onchange = ()=>{ ipPick = Number($('hookIp').value) || 0; renderHook(); };
 $('btnSettingsSave').onclick = async ()=>{
   const p = {port:Number($('s_port').value),hook_path:$('s_hook_path').value.trim(),
     card_seconds:Number($('s_card_seconds').value),toast_limit:Number($('s_toast_limit').value),

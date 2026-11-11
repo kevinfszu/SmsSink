@@ -10,6 +10,7 @@ mod config;
 mod event;
 mod font;
 mod hint;
+mod net;
 mod rules;
 mod server;
 mod store;

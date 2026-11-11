@@ -2,7 +2,7 @@
 use crate::app;
 use crate::config::{self, Config, Rule};
 use crate::server::{query_value, Resp};
-use crate::{event, rules, store, win};
+use crate::{event, net, rules, store, win};
 use regex::Regex;
 use serde_json::{json, Value};
 
@@ -74,6 +74,12 @@ fn state() -> Resp {
         .read()
         .unwrap_or_else(|e| e.into_inner())
         .clone();
+    // 手机端要填的地址得是"手机能访问到的那一个"，所以由后端给出候选，
+    // 不在前端猜（前端拿不到网卡信息）
+    let local_ips: Vec<serde_json::Value> = net::local_v4()
+        .into_iter()
+        .map(|a| json!({"ip": a.ip, "name": a.name, "wifi": a.wifi}))
+        .collect();
     Resp::json(
         200,
         json!({
@@ -83,6 +89,7 @@ fn state() -> Resp {
             "port": cfg.port,
             "listen": cfg.listen,
             "hook_path": cfg.hook_path,
+            "local_ips": local_ips,
             "secret_set": !cfg.secret.is_empty(),
             "autostart": win::auto_start_enabled(),
             "rule_count": cfg.rules.len(),
