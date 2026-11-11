@@ -1,0 +1,42 @@
+{
+  "listen": "0.0.0.0",
+  "port": 8787,
+  "hook_path": "/hook",
+  "secret": "",
+  "timestamp_tolerance_secs": 300,
+  "keep_unmatched": false,
+  "rules": [
+    {
+      "name": "专属系统（仅我一人使用）",
+      "enabled": true,
+      "priority": 100,
+      "match_from": ["1069xxxx"],
+      "keywords_any": ["验证码", "校验码", "动态密码"],
+      "keywords_all": [],
+      "exclude": [],
+      "extract": "(?:验证码|校验码|动态密码)[^\\d]{0,8}(\\d{4,8})",
+      "capture": 1,
+      "notify": "toast",
+      "auto_copy": true,
+      "copy_template": "{code}",
+      "ttl_sec": 180,
+      "keep_history": true
+    },
+    {
+      "name": "共用业务系统（同事也会触发）",
+      "enabled": true,
+      "priority": 10,
+      "match_from": ["1069yyyy"],
+      "keywords_any": ["验证码"],
+      "keywords_all": [],
+      "exclude": [],
+      "extract": "(?:验证码|校验码)[^\\d]{0,8}(\\d{4,8})",
+      "capture": 1,
+      "notify": "toast",
+      "auto_copy": false,
+      "copy_template": "{code}",
+      "ttl_sec": 180,
+      "keep_history": true
+    }
+  ]
+}

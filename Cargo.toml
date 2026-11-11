@@ -1,0 +1,23 @@
+[package]
+name = "sms-sink-pc"
+version = "0.1.0"
+edition = "2021"
+description = "SMS 接码器 · PC 版 — 被动接收 SmsForwarder 推送，按规则提取并通知"
+
+[[bin]]
+name = "SmsSink"
+path = "src/main.rs"
+
+[dependencies]
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+regex = "1"
+hmac = "0.12"
+sha2 = "0.10"
+base64 = "0.22"
+
+[profile.release]
+opt-level = "s"
+lto = true
+codegen-units = 1
+strip = true

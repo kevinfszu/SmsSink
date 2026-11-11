@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>SMS 接码器 · PC 版</title>
+<style>
+body{font-family:"Segoe UI","Microsoft YaHei",sans-serif;background:#f7f7f5;color:#222;margin:0;padding:40px}
+main{max-width:720px;margin:0 auto;background:#fff;border:1px solid #e5e5e0;border-radius:12px;padding:28px}
+h1{font-size:20px;font-weight:500;margin:0 0 6px}
+p{color:#666;font-size:14px;line-height:1.7}
+code{background:#f1f1ec;padding:2px 6px;border-radius:4px;font-size:13px}
+.badge{display:inline-block;background:#e1f5ee;color:#085041;border-radius:6px;padding:4px 10px;font-size:13px}
+</style>
+</head>
+<body>
+<main>
+<h1>SMS 接码器 · PC 版</h1>
+<p>被动接收端已就绪。手机端 SmsForwarder 的 Webhook 应指向 <code>http://电脑局域网IP:8787/hook</code>。</p>
+<p><span class="badge" id="status">正在查询状态…</span></p>
+<p>规则编辑、最近验证码面板与长期统计分析将在后续版本接入此页面。</p>
+</main>
+<script>
+fetch('/api/health').then(r=>r.json()).then(d=>{
+  document.getElementById('status').textContent = '接收端状态：' + d.status;
+}).catch(()=>{
+  document.getElementById('status').textContent = '状态查询失败';
+});
+</script>
+</body>
+</html>
