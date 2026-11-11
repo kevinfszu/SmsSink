@@ -5,6 +5,10 @@
 // 主图标：与 window class / 托盘共用（ID 见 src/win.rs 的 ICON_RESOURCE_ID）
 1 ICON "assets/app.ico"
 
+// DPI 感知声明（RT_MANIFEST = 24）。写在资源里而不是依赖链接器，
+// 保证无论谁编译都带上 permonitorv2，避免字体被位图放大
+1 24 "app.manifest"
+
 VS_VERSION_INFO VERSIONINFO
  FILEVERSION 0,2,0,0
  PRODUCTVERSION 0,2,0,0

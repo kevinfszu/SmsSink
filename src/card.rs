@@ -3,10 +3,13 @@
 //!
 //! 视觉层次：验证码是唯一焦点，标题/时间/原文一律降级为次要信息；
 //! 按钮自绘成「次要描边 + 主要实心」，靠右排列，主次一眼可辨。
+//!
+//! 排版约定：尺寸一律是 96 DPI 下的逻辑像素，绘制时按 `dpi / 96` 换算；
+//! 每一行都放在「刚好一行高」的矩形里并垂直居中，避免不同行基线忽高忽低。
 use crate::event::SmsEvent;
 use crate::rules::Decision;
 use crate::win::*;
-use crate::{app, store, win};
+use crate::{app, font, store, win};
 use std::ffi::c_void;
 use std::sync::{Mutex, OnceLock};
 
@@ -20,23 +23,32 @@ const CLOSE_LABEL: &str = "关闭";
 
 // 逻辑尺寸，实际按 DPI 缩放
 const CARD_W: f64 = 380.0;
-const CARD_H: f64 = 164.0;
+const CARD_H: f64 = 180.0;
 const PAD: f64 = 20.0;
 const BTN_H: f64 = 30.0;
 const BTN_COPY_W: f64 = 72.0;
 const BTN_CLOSE_W: f64 = 60.0;
 const BTN_GAP: f64 = 8.0;
 
+// 字号（逻辑像素）。中文 UI 字体在 12px 才站得住，比原先的 11px 略大，
+// 这是系统 zh-CN 界面正文的常规尺寸。
+const TITLE_PX: f64 = 12.0;
+const CODE_PX: f64 = 36.0;
+const BODY_PX: f64 = 12.0;
+const BUTTON_PX: f64 = 12.0;
+
 static CLASS_NAME: OnceLock<Vec<u16>> = OnceLock::new();
 static CARDS: Mutex<Vec<HWND>> = Mutex::new(Vec::new());
-static FONT_CACHE: OnceLock<Fonts> = OnceLock::new();
 
+#[derive(Clone, Copy)]
 struct Fonts {
-    /// 标题、时间、原文：小号，不抢视线
-    meta: HFONT,
+    /// 标题：最弱的一层
+    title: HFONT,
     /// 验证码：全卡唯一的视觉焦点
     code: HFONT,
-    /// 按钮文字，比正文略小但比 meta 略重
+    /// 时间与原文
+    body: HFONT,
+    /// 按钮文字
     button: HFONT,
 }
 
@@ -44,6 +56,10 @@ struct Fonts {
 struct Palette {
     bg: COLORREF,
     accent: COLORREF,
+    on_accent: COLORREF,
+    /// 原文这类需要读的字，比 muted 实一档
+    text: COLORREF,
+    /// 标题、时间、描边按钮的字：明确降级
     muted: COLORREF,
     border: COLORREF,
 }
@@ -55,6 +71,8 @@ struct CardState {
     content: String,
     copy_text: String,
     row_id: i64,
+    dpi: u32,
+    fonts: Fonts,
 }
 
 fn class_name() -> &'static Vec<u16> {
@@ -79,37 +97,9 @@ fn class_name() -> &'static Vec<u16> {
     })
 }
 
-fn font(px: i32, weight: i32, scale: f64) -> HFONT {
-    let face = wide("Segoe UI");
-    unsafe {
-        CreateFontW(
-            -((px as f64 * scale).round() as i32),
-            0,
-            0,
-            0,
-            weight,
-            0,
-            0,
-            0,
-            DEFAULT_CHARSET,
-            0,
-            0,
-            CLEARTYPE_QUALITY,
-            DEFAULT_PITCH | FF_DONTCARE,
-            face.as_ptr(),
-        )
-    }
-}
-
-fn fonts() -> &'static Fonts {
-    FONT_CACHE.get_or_init(|| {
-        let scale = win::ui_scale();
-        Fonts {
-            meta: font(11, FW_NORMAL, scale),
-            code: font(36, FW_BOLD, scale),
-            button: font(12, FW_SEMIBOLD, scale),
-        }
-    })
+// COLORREF 是 0x00BBGGRR，这里按 RGB 习惯书写
+const fn rgb(r: u32, g: u32, b: u32) -> COLORREF {
+    r | (g << 8) | (b << 16)
 }
 
 /// 跟随系统深浅色，避免深色模式下刺眼的白卡片
@@ -141,20 +131,23 @@ fn palette() -> Palette {
             RegCloseKey(hkey);
         }
     }
-    // COLORREF 为 0x00BBGGRR
     if dark {
         Palette {
-            bg: 0x002E_2E2A,     // #2A2E2E
-            accent: 0x00FF_9D5C, // #5C9DFF
-            muted: 0x0096_9696,  // #969696
-            border: 0x0044_443E, // #3E4444
+            bg: rgb(0x2B, 0x2B, 0x2D),
+            accent: rgb(0x5B, 0x9D, 0xFF),
+            on_accent: rgb(0x0A, 0x0A, 0x0C),
+            text: rgb(0xD4, 0xD4, 0xDA),
+            muted: rgb(0x93, 0x93, 0x9A),
+            border: rgb(0x3E, 0x3E, 0x42),
         }
     } else {
         Palette {
-            bg: 0x00FF_FFFF,     // #FFFFFF
-            accent: 0x00EB_6325, // #2563EB
-            muted: 0x0088_8888,  // #888888
-            border: 0x00E2_E2E2, // #E2E2E2
+            bg: rgb(0xFF, 0xFF, 0xFF),
+            accent: rgb(0x25, 0x63, 0xEB),
+            on_accent: rgb(0xFF, 0xFF, 0xFF),
+            text: rgb(0x3F, 0x3F, 0x46),
+            muted: rgb(0x8A, 0x8A, 0x90),
+            border: rgb(0xE4, 0xE4, 0xE9),
         }
     }
 }
@@ -176,6 +169,24 @@ unsafe fn state<'a>(hwnd: HWND) -> Option<&'a mut CardState> {
     }
 }
 
+/// 在指定矩形里画一行字并垂直居中。
+///
+/// 前提：调用方已把背景模式设为 OPAQUE 且底色等于卡片底色，ClearType 才能
+/// 拿到准确的背景做子像素混合。
+unsafe fn line(hdc: HDC, font: HFONT, color: COLORREF, text: &str, rect: RECT, flags: UINT) {
+    SelectObject(hdc, font);
+    SetTextColor(hdc, color);
+    let mut r = rect;
+    let w = wide(text);
+    DrawTextW(
+        hdc,
+        w.as_ptr(),
+        -1,
+        &mut r,
+        flags | DT_SINGLELINE | DT_VCENTER | DT_NOPREFIX,
+    );
+}
+
 unsafe fn paint(hwnd: HWND) {
     let mut ps: PAINTSTRUCT = std::mem::zeroed();
     let hdc = BeginPaint(hwnd, &mut ps);
@@ -185,85 +196,82 @@ unsafe fn paint(hwnd: HWND) {
     let mut rc: RECT = std::mem::zeroed();
     GetClientRect(hwnd, &mut rc);
 
-    let scale = win::ui_scale();
     let pal = palette();
     let brush = CreateSolidBrush(pal.bg);
     FillRect(hdc, &rc, brush);
     DeleteObject(brush);
-    SetBkMode(hdc, TRANSPARENT);
 
-    let f = fonts();
-    let pad = (PAD * scale) as i32;
-    let right = rc.right - pad;
+    // 实色背景 + 不透明背景模式：ClearType 的最优路径
+    SetBkMode(hdc, OPAQUE);
+    SetBkColor(hdc, pal.bg);
 
     if let Some(s) = state(hwnd) {
+        let dpi = s.dpi;
+        let px = |v: f64| (v * dpi as f64 / 96.0).round() as i32;
+        let f = s.fonts;
+        let pad = px(PAD);
+        let right = rc.right - pad;
+
         // 标题：弱化成次要信息，不与验证码争视线
-        SetTextColor(hdc, pal.muted);
-        SelectObject(hdc, f.meta);
-        let mut r = RECT {
-            left: pad,
-            top: (14.0 * scale) as i32,
-            right,
-            bottom: (30.0 * scale) as i32,
-        };
-        let title = wide(&s.title);
-        DrawTextW(
+        line(
             hdc,
-            title.as_ptr(),
-            -1,
-            &mut r,
-            DT_LEFT | DT_SINGLELINE | DT_END_ELLIPSIS | DT_NOPREFIX,
+            f.title,
+            pal.muted,
+            &s.title,
+            RECT {
+                left: pad,
+                top: px(16.0),
+                right,
+                bottom: px(16.0 + 16.0),
+            },
+            DT_LEFT | DT_END_ELLIPSIS,
         );
 
-        // 验证码：唯一焦点
-        SetTextColor(hdc, pal.accent);
-        SelectObject(hdc, f.code);
-        let mut r2 = RECT {
-            left: pad,
-            top: (30.0 * scale) as i32,
-            right,
-            bottom: (78.0 * scale) as i32,
-        };
-        let code = wide(&s.code);
-        DrawTextW(
+        // 验证码：唯一焦点。字符间距略开一点，一串数字才不显得挤成一团。
+        SetTextCharacterExtra(hdc, px(0.7));
+        line(
             hdc,
-            code.as_ptr(),
-            -1,
-            &mut r2,
-            DT_LEFT | DT_SINGLELINE | DT_NOPREFIX,
+            f.code,
+            pal.accent,
+            &s.code,
+            RECT {
+                left: pad,
+                top: px(32.0),
+                right,
+                bottom: px(32.0 + 54.0),
+            },
+            DT_LEFT,
+        );
+        SetTextCharacterExtra(hdc, 0);
+
+        // 时间：最弱
+        line(
+            hdc,
+            f.body,
+            pal.muted,
+            &s.time,
+            RECT {
+                left: pad,
+                top: px(88.0),
+                right,
+                bottom: px(88.0 + 16.0),
+            },
+            DT_LEFT,
         );
 
-        // 时间与原文：同属降级信息
-        SetTextColor(hdc, pal.muted);
-        SelectObject(hdc, f.meta);
-        let mut r3 = RECT {
-            left: pad,
-            top: (80.0 * scale) as i32,
-            right,
-            bottom: (96.0 * scale) as i32,
-        };
-        let time = wide(&s.time);
-        DrawTextW(
+        // 原文：同属降级信息，但比时间要能读
+        line(
             hdc,
-            time.as_ptr(),
-            -1,
-            &mut r3,
-            DT_LEFT | DT_SINGLELINE | DT_NOPREFIX,
-        );
-
-        let mut r4 = RECT {
-            left: pad,
-            top: (96.0 * scale) as i32,
-            right,
-            bottom: (112.0 * scale) as i32,
-        };
-        let content = wide(&s.content);
-        DrawTextW(
-            hdc,
-            content.as_ptr(),
-            -1,
-            &mut r4,
-            DT_LEFT | DT_SINGLELINE | DT_END_ELLIPSIS | DT_NOPREFIX,
+            f.body,
+            pal.text,
+            &s.content,
+            RECT {
+                left: pad,
+                top: px(106.0),
+                right,
+                bottom: px(106.0 + 18.0),
+            },
+            DT_LEFT | DT_END_ELLIPSIS,
         );
     }
 
@@ -272,12 +280,18 @@ unsafe fn paint(hwnd: HWND) {
 
 /// 自绘按钮：「复制」实心强调色，「关闭」描边弱化；按下态统一压暗
 unsafe fn draw_button(dis: &DRAWITEMSTRUCT) -> LRESULT {
-    let scale = win::ui_scale();
-    let pal = palette();
     let hdc = dis.hDC;
     let rc = dis.rcItem;
     let pressed = dis.itemState & ODS_SELECTED != 0;
     let primary = dis.CtlID as usize == ID_COPY;
+
+    let Some(parent) = state_owner(dis.hwndItem) else {
+        return 0;
+    };
+    let s = &*parent;
+    let dpi = s.dpi;
+    let px = |v: f64| (v * dpi as f64 / 96.0).round() as i32;
+    let pal = palette();
 
     // 先铺卡片底色，避免圆角外露出上一帧内容
     let bg = CreateSolidBrush(pal.bg);
@@ -295,35 +309,60 @@ unsafe fn draw_button(dis: &DRAWITEMSTRUCT) -> LRESULT {
         };
         (base, base)
     } else if pressed {
-        (pal.border, pal.border)
+        (shade(pal.bg, 0.94), pal.border)
     } else {
         (pal.bg, pal.border)
     };
     SetDCBrushColor(hdc, fill);
     SetDCPenColor(hdc, edge);
 
-    let radius = (7.0 * scale) as i32;
-    RoundRect(hdc, rc.left, rc.top, rc.right, rc.bottom, radius * 2, radius * 2);
+    let radius = px(7.0);
+    RoundRect(
+        hdc,
+        rc.left,
+        rc.top,
+        rc.right,
+        rc.bottom,
+        radius * 2,
+        radius * 2,
+    );
 
     SelectObject(hdc, old_brush);
     SelectObject(hdc, old_pen);
 
-    SetBkMode(hdc, TRANSPARENT);
-    SetTextColor(hdc, if primary { 0x00FF_FFFF } else { pal.muted });
-
-    let f = fonts();
-    let old_font = SelectObject(hdc, f.button);
-    let label = wide(if primary { COPY_LABEL } else { CLOSE_LABEL });
+    SetBkMode(hdc, OPAQUE);
+    SetBkColor(hdc, fill);
+    let (color, label) = if primary {
+        (pal.on_accent, COPY_LABEL)
+    } else {
+        (pal.text, CLOSE_LABEL)
+    };
     let mut tr = rc;
+    let text = wide(label);
+    SelectObject(hdc, s.fonts.button);
+    SetTextColor(hdc, color);
     DrawTextW(
         hdc,
-        label.as_ptr(),
+        text.as_ptr(),
         -1,
         &mut tr,
         DT_CENTER | DT_VCENTER | DT_SINGLELINE | DT_NOPREFIX,
     );
-    SelectObject(hdc, old_font);
     1
+}
+
+/// 取子控件所属窗口的 CardState 指针
+unsafe fn state_owner(child: HWND) -> Option<*mut CardState> {
+    let parent = GetParent(child);
+    if parent == 0 {
+        return None;
+    }
+    let ptr = GetWindowLongPtrW(parent, GWLP_USERDATA);
+    if ptr == 0 {
+        None
+    } else {
+        Some(ptr as *mut CardState)
+    }
 }
 
 unsafe extern "system" fn wnd_proc(
@@ -372,7 +411,17 @@ unsafe extern "system" fn wnd_proc(
             KillTimer(hwnd, TIMER_ID);
             let ptr = GetWindowLongPtrW(hwnd, GWLP_USERDATA);
             if ptr != 0 {
-                drop(Box::from_raw(ptr as *mut CardState));
+                let card = Box::from_raw(ptr as *mut CardState);
+                for f in [
+                    card.fonts.title,
+                    card.fonts.code,
+                    card.fonts.body,
+                    card.fonts.button,
+                ] {
+                    if f != 0 {
+                        DeleteObject(f);
+                    }
+                }
                 SetWindowLongPtrW(hwnd, GWLP_USERDATA, 0);
             }
             if let Ok(mut cards) = CARDS.lock() {
@@ -390,7 +439,8 @@ pub fn show(d: &Decision, ev: &SmsEvent, row_id: i64) {
         .read()
         .unwrap_or_else(|e| e.into_inner())
         .clone();
-    let scale = win::ui_scale();
+    let dpi = win::system_dpi();
+    let scale = dpi as f64 / 96.0;
     let w = (CARD_W * scale).round() as i32;
     let h = (CARD_H * scale).round() as i32;
     let gap = (10.0 * scale).round() as i32;
@@ -398,12 +448,7 @@ pub fn show(d: &Decision, ev: &SmsEvent, row_id: i64) {
 
     let mut work: RECT = unsafe { std::mem::zeroed() };
     unsafe {
-        SystemParametersInfoW(
-            SPI_GETWORKAREA,
-            0,
-            &mut work as *mut RECT as *mut c_void,
-            0,
-        );
+        SystemParametersInfoW(SPI_GETWORKAREA, 0, &mut work as *mut RECT as *mut c_void, 0);
     }
     if work.right == 0 {
         work.right = 1920;
@@ -426,7 +471,15 @@ pub fn show(d: &Decision, ev: &SmsEvent, row_id: i64) {
     for (i, &existing) in cards.iter().rev().enumerate() {
         let y = work.bottom - margin - h - (i as i32 + 1) * (h + gap);
         unsafe {
-            SetWindowPos(existing, HWND_TOPMOST, work.right - margin - w, y, w, h, SWP_NOACTIVATE);
+            SetWindowPos(
+                existing,
+                HWND_TOPMOST,
+                work.right - margin - w,
+                y,
+                w,
+                h,
+                SWP_NOACTIVATE,
+            );
         }
     }
     let y = work.bottom - margin - h;
@@ -455,6 +508,14 @@ pub fn show(d: &Decision, ev: &SmsEvent, row_id: i64) {
         return;
     }
 
+    let face = font::ui_face();
+    let fonts = Fonts {
+        title: font::create(face, TITLE_PX, dpi, FW_NORMAL),
+        code: font::create(face, CODE_PX, dpi, FW_BOLD),
+        body: font::create(face, BODY_PX, dpi, FW_NORMAL),
+        button: font::create(face, BUTTON_PX, dpi, FW_NORMAL),
+    };
+
     let card = Box::new(CardState {
         title: format!("{} · {}", crate::config::APP_DISPLAY_NAME, d.rule_name),
         code: d.code.clone(),
@@ -462,6 +523,8 @@ pub fn show(d: &Decision, ev: &SmsEvent, row_id: i64) {
         content: ev.content.clone(),
         copy_text: d.copy_text.clone(),
         row_id,
+        dpi,
+        fonts,
     });
     unsafe {
         SetWindowLongPtrW(hwnd, GWLP_USERDATA, Box::into_raw(card) as isize);

@@ -121,16 +121,27 @@ SQLite 落盘于 `%APPDATA%\SmsSink\data.db`（可用 `db_path` 改），记录�
 - 进程退出后，通知中心里遗留的 Toast 按钮不再可用（需二期实现 COM `INotificationActivationCallback`）。
 - 端口、监听地址、hook 路径变更后需重启程序；其余配置热重载即可。
 
+## 界面与排版
+
+自绘界面只有两处容易显廉价，都在早期踩过：
+
+1. **字体必须自带中文字形**。早期卡片只请求 `Segoe UI`，它没有汉字，GDI 的字体链接会把每个汉字换成宋体——宋体是衬线点阵字体，小字号下笔画细、粗细不匀，和旁边的无衬线数字完全两种气质，整体就散了。现在统一用 `Microsoft YaHei UI`（系统 zh-CN 界面字体，中英混排一致），并在 `src/font.rs` 里用 `EnumFontFamiliesExW` 确认字族真的存在，避免 GDI 静默替换。
+2. **DPI 感知必须早于第一扇窗**。没有 manifest 时进程默认「不感知 DPI」，Windows 会先按 96 DPI 渲染整张卡片再位图放大 1.25 倍，字体边缘必然发虚。现在 `app.manifest` 声明 `permonitorv2`，启动第一件事就是 `win::init_dpi_awareness()`，尺寸一律按 `dpi / 96` 换算。程序启动日志会打印实际字体与 DPI，例如 `界面字体 Microsoft YaHei UI · DPI 120 (125%)`。
+
+排印细节：每行字都放在「刚好一行高」的矩形里并 `DT_VCENTER` 垂直居中，避免各行基线忽高忽低；背景是不透明实色，因此 `SetBkMode(OPAQUE)` + `SetBkColor(卡片底色)`，ClearType 才能走最优子像素路径。
+
 ## 目录
 
 ```
 Cargo.toml            依赖与 Release 优化（lto + strip）
 build.rs              编译期把图标与版本信息写入 exe 资源
-app.rc                资源脚本：主图标 ID=1、VERSIONINFO
-src/main.rs           启动编排、单实例、COM/AUMID、DB 初始化
+app.rc                资源脚本：主图标 ID=1、manifest、VERSIONINFO
+app.manifest          DPI 感知（permonitorv2）与以当前用户身份运行
+src/main.rs           启动编排、DPI 感知、单实例、COM/AUMID、DB 初始化
 src/config.rs         配置结构、落盘、令牌、DB 路径
 src/app.rs            可热重载的全局状态
 src/win.rs            Win32 手写 FFI（托盘/剪贴板/注册表/自启/控制台/图标）
+src/font.rs           界面字体选型（中英同一套字形）与按 DPI 建字体
 src/server.rs         TcpListener 极简 HTTP、form/JSON 解析、加签校验、路由
 src/rules.rs          优先级规则匹配、上下文正则提取、试跑
 src/event.rs          HTTP 线程 → UI 线程的事件投递与动作分发
@@ -142,6 +153,5 @@ src/admin.rs          管理台 API
 assets/index.html     管理台单页（规则 / 记录 / 统计 / 设置）
 assets/app.ico        应用图标（9 个尺寸：16～256）
 tools/make_icon.py    图标生成脚本，改设计后重跑即可
-```
 config.example.json   完整配置示例
 ```

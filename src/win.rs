@@ -66,6 +66,28 @@ pub struct MSG {
     pub lPrivate: DWORD,
 }
 
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct LOGFONTW {
+    pub lfHeight: i32,
+    pub lfWidth: i32,
+    pub lfEscapement: i32,
+    pub lfOrientation: i32,
+    pub lfWeight: i32,
+    pub lfItalic: u8,
+    pub lfUnderline: u8,
+    pub lfStrikeOut: u8,
+    pub lfCharSet: u8,
+    pub lfOutPrecision: u8,
+    pub lfClipPrecision: u8,
+    pub lfQuality: u8,
+    pub lfPitchAndFamily: u8,
+    pub lfFaceName: [u16; 32],
+}
+
+pub type FONTENUMPROCW =
+    Option<unsafe extern "system" fn(*const LOGFONTW, *const c_void, DWORD, LPARAM) -> i32>;
+
 /// 自绘按钮的绘制上下文（WM_DRAWITEM 的 lParam）
 #[repr(C)]
 pub struct DRAWITEMSTRUCT {
@@ -186,6 +208,11 @@ pub const DT_WORD_ELLIPSIS: UINT = 0x0004_0000;
 pub const DT_END_ELLIPSIS: UINT = 0x0000_8000;
 pub const DT_NOPREFIX: UINT = 0x0000_0800;
 pub const TRANSPARENT: i32 = 1;
+/// 不透明背景模式：ClearType 在实色背景上才能拿到最优的子像素抗锯齿，
+/// 透明模式下 GDI 需要回读目标像素，边缘会发灰、发软。
+pub const OPAQUE: i32 = 2;
+/// Per-Monitor V2，Win10 1703+ 的 DPI 感知上下文（伪句柄 -4）
+pub const DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2: HANDLE = -4;
 pub const FW_NORMAL: i32 = 400;
 pub const FW_SEMIBOLD: i32 = 600;
 pub const FW_BOLD: i32 = 700;
@@ -267,6 +294,7 @@ extern "system" {
     pub fn SetWindowLongPtrW(hwnd: HWND, index: i32, value: isize) -> isize;
     pub fn GetWindowLongPtrW(hwnd: HWND, index: i32) -> isize;
     pub fn GetClientRect(hwnd: HWND, rect: *mut RECT) -> BOOL;
+    pub fn GetParent(hwnd: HWND) -> HWND;
     pub fn BeginPaint(hwnd: HWND, ps: *mut PAINTSTRUCT) -> HDC;
     pub fn EndPaint(hwnd: HWND, ps: *const PAINTSTRUCT) -> BOOL;
     pub fn FillRect(hdc: HDC, rect: *const RECT, brush: HBRUSH) -> i32;
@@ -307,6 +335,7 @@ extern "system" {
         winini: UINT,
     ) -> BOOL;
     pub fn SetProcessDPIAware() -> BOOL;
+    pub fn SetProcessDpiAwarenessContext(context: HANDLE) -> BOOL;
     pub fn GetDpiForSystem() -> UINT;
     pub fn OpenClipboard(hwnd: HWND) -> BOOL;
     pub fn EmptyClipboard() -> BOOL;
@@ -334,7 +363,18 @@ extern "system" {
         face: *const u16,
     ) -> HFONT;
     pub fn GetStockObject(index: i32) -> HGDIOBJ;
+    pub fn CreateCompatibleDC(hdc: HDC) -> HDC;
+    pub fn DeleteDC(hdc: HDC) -> BOOL;
+    pub fn EnumFontFamiliesExW(
+        hdc: HDC,
+        lf: *const LOGFONTW,
+        proc_: FONTENUMPROCW,
+        param: LPARAM,
+        flags: DWORD,
+    ) -> i32;
     pub fn SetBkMode(hdc: HDC, mode: i32) -> i32;
+    pub fn SetBkColor(hdc: HDC, color: COLORREF) -> COLORREF;
+    pub fn SetTextCharacterExtra(hdc: HDC, extra: i32) -> i32;
     pub fn SetTextColor(hdc: HDC, color: COLORREF) -> COLORREF;
     pub fn SelectObject(hdc: HDC, obj: HGDIOBJ) -> HGDIOBJ;
     pub fn DeleteObject(obj: HGDIOBJ) -> BOOL;
@@ -556,17 +596,35 @@ pub fn tray_icon() -> HICON {
     app_icon(size)
 }
 
+/// 声明本进程的 DPI 感知级别，**必须在创建任何窗口、取任何 DC 之前调用**。
+///
+/// 之前这段逻辑被放在 `ui_scale()` 里，而 `ui_scale()` 只在弹出第一张卡片时才被
+/// 调用——那时托盘窗口早就建好了，`SetProcessDPIAware()` 已经失效。进程于是停留
+/// 在 DPI 不感知状态，整张卡片按 96 DPI 画完再被系统位图放大 1.25 倍，字体边缘
+/// 自然发虚。现在改为进程启动时一次性声明，且用 Per-Monitor V2。
+pub fn init_dpi_awareness() {
+    unsafe {
+        if SetProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2) != 0 {
+            return;
+        }
+        // 老系统兜底：至少拿到系统级 DPI 感知，避免位图拉伸
+        SetProcessDPIAware();
+    }
+}
+
+/// 主屏 DPI（96 = 100%）。仅用于计算卡片尺寸，卡片总是出现在主屏工作区。
+pub fn system_dpi() -> u32 {
+    let dpi = unsafe { GetDpiForSystem() };
+    if dpi == 0 {
+        96
+    } else {
+        dpi
+    }
+}
+
 /// 返回界面缩放系数（96 DPI = 1.0）
 pub fn ui_scale() -> f64 {
-    unsafe {
-        SetProcessDPIAware();
-        let dpi = GetDpiForSystem();
-        if dpi == 0 {
-            1.0
-        } else {
-            dpi as f64 / 96.0
-        }
-    }
+    system_dpi() as f64 / 96.0
 }
 
 pub fn init_com() -> bool {
@@ -582,9 +640,7 @@ pub fn set_aumid(app_id: &str, display_name: &str) {
     }
 
     // 注册 AUMID，让通知中心显示正确的应用名与图标（unpackaged 应用必需）
-    let subkey = wide(&format!(
-        r"Software\Classes\AppUserModelId\{app_id}"
-    ));
+    let subkey = wide(&format!(r"Software\Classes\AppUserModelId\{app_id}"));
     let mut hkey: isize = 0;
     let rc = unsafe {
         RegCreateKeyExW(

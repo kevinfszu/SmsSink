@@ -8,6 +8,7 @@ mod app;
 mod card;
 mod config;
 mod event;
+mod font;
 mod rules;
 mod server;
 mod store;
@@ -38,6 +39,11 @@ fn usage() {
 }
 
 fn main() {
+    // 必须在创建任何窗口 / 取任何 DC 之前声明 DPI 感知，否则整个进程会被
+    // 系统按 96 DPI 渲染后再位图放大，字体边缘发虚（细节见 win::init_dpi_awareness）
+    #[cfg(windows)]
+    win::init_dpi_awareness();
+
     // 必须在任何输出之前：GUI 子系统进程默认没有可写的 stdout
     #[cfg(windows)]
     win::init_stdio();
@@ -54,7 +60,11 @@ fn main() {
     let probe_ui = args.iter().any(|a| a == "--probe-ui");
 
     let cfg = config::load();
-    println!("{}  v{}", config::APP_DISPLAY_NAME, env!("CARGO_PKG_VERSION"));
+    println!(
+        "{}  v{}",
+        config::APP_DISPLAY_NAME,
+        env!("CARGO_PKG_VERSION")
+    );
     println!(
         "  标识 {} · AUMID {} · 配置 {}",
         config::APP_ID,
@@ -64,6 +74,13 @@ fn main() {
     println!(
         "  管理台 http://127.0.0.1:{}/?token={}",
         cfg.port, cfg.admin_token
+    );
+    let dpi = win::system_dpi();
+    println!(
+        "  界面字体 {} · DPI {} ({:.0}%)",
+        String::from_utf16_lossy(font::ui_face()),
+        dpi,
+        dpi as f64 / 96.0 * 100.0
     );
     if cfg.secret.is_empty() {
         println!("  [提醒] 未配置 secret，当前不做来源校验，联调完成后请补上");
