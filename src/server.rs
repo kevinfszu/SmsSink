@@ -78,6 +78,13 @@ fn handle(mut stream: TcpStream, state: Arc<AppState>) {
         .peer_addr()
         .map(|a| a.ip().is_loopback())
         .unwrap_or(false);
+    // 局域网连接打一行日志：手机测试「请求失败」但看不到这行，就能断定
+    // 请求根本没到电脑（网络层问题），而不是签名或格式被拒
+    if !is_loopback {
+        if let Ok(peer) = stream.peer_addr() {
+            println!("[sink] 连接来自 {peer}");
+        }
+    }
 
     let mut buf: Vec<u8> = Vec::with_capacity(4096);
     let mut tmp = [0u8; 4096];
@@ -136,8 +143,11 @@ fn handle(mut stream: TcpStream, state: Arc<AppState>) {
 
     let cfg = state.cfg.read().unwrap_or_else(|e| e.into_inner()).clone();
 
-    // 手机端推送：唯一允许来自局域网的路径，靠 HMAC 加签鉴权
-    if method == "POST" && path == cfg.hook_path {
+    // 手机端推送：唯一允许来自局域网的路径，靠 HMAC 加签鉴权。
+    // 官方 SmsForwarder 支持 POST/GET/PUT/PATCH：GET 与部分配置会把
+    // timestamp/sign 放 URL query（还有防缓存参数 _t），合并进字段来源。
+    if path == cfg.hook_path && matches!(method, "POST" | "GET" | "PUT" | "PATCH") {
+        let body = merge_query(&body, &query);
         receive(&mut stream, &cfg, &state.seen, &head, &body);
         return;
     }
@@ -172,6 +182,25 @@ fn handle(mut stream: TcpStream, state: Arc<AppState>) {
     respond(&mut stream, resp);
 }
 
+/// 把 URL query 里的字段并入表单来源（body 优先：body 已有的键不覆盖）。
+/// JSON body 不合并（格式不同）；防缓存参数 _t 之类会被 parse_body 忽略，无害。
+fn merge_query(body: &str, query: &str) -> String {
+    if body.trim_start().starts_with('{') {
+        return body.to_string();
+    }
+    let mut merged = body.to_string();
+    for pair in query.split('&').filter(|p| !p.is_empty()) {
+        let (k, _) = pair.split_once('=').unwrap_or((pair, ""));
+        if !merged.contains(&format!("{k}=")) {
+            if !merged.is_empty() && !merged.ends_with('&') {
+                merged.push('&');
+            }
+            merged.push_str(pair);
+        }
+    }
+    merged
+}
+
 fn receive(
     stream: &mut TcpStream,
     cfg: &crate::config::Config,
@@ -202,10 +231,9 @@ fn receive(
     // 否则他只会觉得短信没到。判定细节交给 rules 层，这里只做搬运。
     let (decision, no_code) = match evaluate_outcome(cfg, &inbox.from, &inbox.content) {
         Outcome::Code(d) => (Some(d), None),
-        Outcome::NoCode { rule_name, notify } => (
-            None,
-            Some(event::NoCodeHit { rule_name, notify }),
-        ),
+        Outcome::NoCode { rule_name, notify } => {
+            (None, Some(event::NoCodeHit { rule_name, notify }))
+        }
         Outcome::NoMatch => (None, None),
     };
     event::submit(event::SmsEvent {
@@ -260,24 +288,33 @@ fn verify(
         return Err("timestamp 超出允许时间窗".into());
     }
 
-    let mut mac = HmacSha256::new_from_slice(cfg.secret.as_bytes())
-        .expect("HMAC 接受任意长度密钥");
+    let mut mac = HmacSha256::new_from_slice(cfg.secret.as_bytes()).expect("HMAC 接受任意长度密钥");
     mac.update(format!("{}\n{}", inbox.timestamp, cfg.secret).as_bytes());
-    // 表单 / JSON 解析时已经 urlDecode 过一次，这里不能再解：Base64 里的 '+' 会被
-    // 二次解码吃成空格，导致约三分之一的合法签名被误判为「不是合法 Base64」。
-    // 个别客户端把 '+' 原样塞进表单（会被表单解析当成空格），Base64 里本就没有
-    // 空格，换回 '+' 属于无损容错。
+    // sign 到达这里可能是三种形态（都以合法签名结尾归一为原始 Base64）：
+    // 1. 我们自测脚本/标准表单客户端：编码一次 → 表单解析解一次 → 原始 Base64；
+    // 2. 官方 SmsForwarder：URLEncoder 编码一次后，OkHttp FormBody 又编码一次
+    //    （postRequest.params 会再 encode），表单解析只解一层 → 残留 %2B/%3D；
+    // 3. JSON 通道：[sign] 替换的是编码过一次的原文，JSON 解析不解码 → 残留 %2B。
+    // 含 '%' 说明还剩一层编码，剥掉；表单解析把原样 '+' 吃成空格，Base64 无空格，换回。
+    let mut sign_raw = inbox.sign.as_str();
+    let sign_decoded;
+    if sign_raw.contains('%') {
+        sign_decoded = url_decode(sign_raw);
+        sign_raw = sign_decoded.as_str();
+    }
+    let sign_norm = sign_raw.replace(' ', "+");
     let decoded = STANDARD
-        .decode(inbox.sign.replace(' ', "+").as_bytes())
+        .decode(sign_norm.as_bytes())
         .map_err(|_| "sign 不是合法 Base64".to_string())?;
     mac.verify_slice(&decoded)
         .map_err(|_| "sign 校验失败".to_string())?;
 
     let mut set = seen.lock().unwrap_or_else(|e| e.into_inner());
-    if set.contains(&inbox.sign) {
+    // 用归一后的签名做重放键：同一签名换编码形态到达也算重放
+    if set.contains(&sign_norm) {
         return Err("重复请求（疑似重放）".into());
     }
-    set.insert(inbox.sign.clone());
+    set.insert(sign_norm);
     if set.len() > 2000 {
         set.clear();
     }
@@ -452,7 +489,10 @@ mod tests {
             ..Default::default()
         };
         let seen = Mutex::new(HashSet::new());
-        assert!(verify(&cfg, &inbox, &seen).is_ok(), "带 '+' 的合法签名被拒绝");
+        assert!(
+            verify(&cfg, &inbox, &seen).is_ok(),
+            "带 '+' 的合法签名被拒绝"
+        );
 
         // 同一签名重放要被拦下
         assert!(verify(&cfg, &inbox, &seen).is_err(), "重放未被拦截");
@@ -468,7 +508,10 @@ mod tests {
         let sign = STANDARD.encode(mac.finalize().into_bytes());
         let body = format!("from=10086&content=hi&timestamp={ts}&sign={sign}");
         let inbox = parse_body(&body, false);
-        let cfg = crate::config::Config { secret: secret.into(), ..Default::default() };
+        let cfg = crate::config::Config {
+            secret: secret.into(),
+            ..Default::default()
+        };
         let seen = Mutex::new(HashSet::new());
         assert!(verify(&cfg, &inbox, &seen).is_ok(), "秒级时间戳被拒");
         assert_eq!(ts_ms(&ts) % 1000, 0, "应已乘 1000");
@@ -483,7 +526,10 @@ mod tests {
         let mut mac = HmacSha256::new_from_slice(secret.as_bytes()).unwrap();
         mac.update(format!("{}\n{}", ts, secret).as_bytes());
         let sign = STANDARD.encode(mac.finalize().into_bytes());
-        let raw: String = sign.chars().map(|c| if c == '+' { ' ' } else { c }).collect();
+        let raw: String = sign
+            .chars()
+            .map(|c| if c == '+' { ' ' } else { c })
+            .collect();
         let body = format!("from=10086&content=hi&timestamp={ts}&sign={raw}");
         let inbox = parse_body(&body, false);
         let cfg = crate::config::Config {
@@ -497,5 +543,123 @@ mod tests {
         if sign.contains('+') {
             assert!(r.is_ok(), "原样 '+' 的签名被拒绝");
         }
+    }
+}
+
+#[cfg(test)]
+mod smsforwarder_compat {
+    use super::*;
+
+    /// 模拟官方 SmsForwarder 的编码链路（WebhookUtils.kt 实测源码）：
+    /// sign = URLEncoder.encode(Base64(HMAC))，再经 OkHttp FormBody.params 编码一次，
+    /// 即「双重 URL 编码」。表单解析解一层后残留 %2B/%3D，verify 必须归一后放行。
+    #[test]
+    fn double_encoded_sign_is_accepted() {
+        let enc = |s: &str| {
+            s.chars()
+                .map(|c| match c {
+                    '+' => "%2B".into(),
+                    '/' => "%2F".into(),
+                    '=' => "%3D".into(),
+                    '%' => "%25".into(),
+                    c => c.to_string(),
+                })
+                .collect::<String>()
+        };
+        let ts = win::now_ms().to_string();
+        let secret = "smsf-secret";
+        let mut mac = HmacSha256::new_from_slice(secret.as_bytes()).unwrap();
+        mac.update(format!("{ts}\n{secret}").as_bytes());
+        let sign = STANDARD.encode(mac.finalize().into_bytes());
+
+        // 官方 app：先 URLEncoder 一次，OkHttp 再编一次
+        let twice = &enc(&enc(&sign));
+        let body = format!("from=10086&content=hi&timestamp={ts}&sign={twice}");
+        let inbox = parse_body(&body, false);
+        assert!(
+            inbox.sign.contains('%'),
+            "测试前提：表单解析一层后应仍残留编码"
+        );
+        let cfg = crate::config::Config {
+            secret: secret.into(),
+            ..Default::default()
+        };
+        let seen = Mutex::new(HashSet::new());
+        assert!(
+            verify(&cfg, &inbox, &seen).is_ok(),
+            "官方双重编码的合法签名被拒"
+        );
+
+        // 单次编码（我们自测脚本的形态）也必须仍然通过
+        let once = &enc(&sign);
+        let body = format!("from=10086&content=hi&timestamp={ts}&sign={once}");
+        let seen = Mutex::new(HashSet::new());
+        assert!(
+            verify(&cfg, &inbox_of(&body), &seen).is_ok(),
+            "单次编码签名被拒"
+        );
+    }
+
+    fn inbox_of(body: &str) -> Inbox {
+        parse_body(body, false)
+    }
+
+    /// JSON 通道（Content-Type: application/json）：[sign] 替换的是编码过一次的
+    /// 原文，JSON 解析不做 urlDecode，verify 需要剥掉这一层。
+    #[test]
+    fn json_channel_encoded_sign_is_accepted() {
+        let ts = win::now_ms().to_string();
+        let secret = "json-secret";
+        let mut mac = HmacSha256::new_from_slice(secret.as_bytes()).unwrap();
+        mac.update(format!("{ts}\n{secret}").as_bytes());
+        let sign = STANDARD.encode(mac.finalize().into_bytes());
+        let encoded: String = sign
+            .chars()
+            .map(|c| match c {
+                '+' => "%2B".into(),
+                '/' => "%2F".into(),
+                '=' => "%3D".into(),
+                c => c.to_string(),
+            })
+            .collect();
+        let body =
+            format!(r#"{{"from":"10086","content":"hi","timestamp":"{ts}","sign":"{encoded}"}}"#);
+        let inbox = parse_body(&body, true);
+        let cfg = crate::config::Config {
+            secret: secret.into(),
+            ..Default::default()
+        };
+        let seen = Mutex::new(HashSet::new());
+        assert!(
+            verify(&cfg, &inbox, &seen).is_ok(),
+            "JSON 通道的编码签名被拒"
+        );
+    }
+
+    /// GET 通道：timestamp/sign 在 URL query 里而不是 body。
+    #[test]
+    fn query_sign_is_merged_into_body() {
+        let ts = win::now_ms().to_string();
+        let secret = "get-secret";
+        let mut mac = HmacSha256::new_from_slice(secret.as_bytes()).unwrap();
+        mac.update(format!("{ts}\n{secret}").as_bytes());
+        let sign = STANDARD.encode(mac.finalize().into_bytes());
+        let body = "";
+        let query = format!("from=10086&content=hi&timestamp={ts}&sign={sign}&_t=123");
+        let merged = merge_query(body, &query);
+        assert!(merged.contains("timestamp=") && merged.contains("sign="));
+        let inbox = parse_body(&merged, false);
+        assert_eq!(inbox.timestamp, ts);
+        let cfg = crate::config::Config {
+            secret: secret.into(),
+            ..Default::default()
+        };
+        let seen = Mutex::new(HashSet::new());
+        assert!(verify(&cfg, &inbox, &seen).is_ok(), "query 携带的签名被拒");
+        // body 已有的键不被 query 覆盖
+        let merged2 = merge_query("from=99999&content=x", "from=10086&content=hi");
+        assert!(merged2.contains("from=99999"));
+        // JSON body 不合并
+        assert_eq!(merge_query(r#"{"a":1}"#, "t=1"), r#"{"a":1}"#);
     }
 }

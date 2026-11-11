@@ -114,9 +114,7 @@ pub fn preview(rule: &Rule, from: &str, content: &str) -> Value {
     if !conditions_met(rule, from, content) {
         let reason = if !rule.enabled {
             "规则未启用"
-        } else if !rule.match_from.is_empty()
-            && !rule.match_from.iter().any(|p| from.contains(p))
-        {
+        } else if !rule.match_from.is_empty() && !rule.match_from.iter().any(|p| from.contains(p)) {
             "发送方号码不匹配"
         } else if !rule.keywords_all.is_empty()
             && !rule.keywords_all.iter().all(|k| content.contains(k))

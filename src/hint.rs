@@ -95,7 +95,11 @@ fn class_name() -> &'static Vec<u16> {
 fn estimate_width(text: &str, scale: f64) -> f64 {
     let mut w = 0.0;
     for c in text.chars() {
-        w += if (c as u32) < 0x2E80 { FONT_PX * 0.55 } else { FONT_PX };
+        w += if (c as u32) < 0x2E80 {
+            FONT_PX * 0.55
+        } else {
+            FONT_PX
+        };
     }
     ((w + PAD_X * 2.0) * scale).clamp(MIN_W * scale, MAX_W * scale)
 }
@@ -192,7 +196,9 @@ unsafe extern "system" fn wnd_proc(
                 drop(Box::from_raw(ptr as *mut HintState));
                 SetWindowLongPtrW(hwnd, GWLP_USERDATA, 0);
             }
-            CURRENT.compare_exchange(hwnd, 0, Ordering::SeqCst, Ordering::SeqCst).ok();
+            CURRENT
+                .compare_exchange(hwnd, 0, Ordering::SeqCst, Ordering::SeqCst)
+                .ok();
             0
         }
         _ => DefWindowProcW(hwnd, msg, wparam, lparam),
@@ -209,12 +215,7 @@ pub fn show(text: &str, tone: Tone) {
 
     let mut work: RECT = unsafe { std::mem::zeroed() };
     unsafe {
-        SystemParametersInfoW(
-            SPI_GETWORKAREA,
-            0,
-            &mut work as *mut RECT as *mut c_void,
-            0,
-        );
+        SystemParametersInfoW(SPI_GETWORKAREA, 0, &mut work as *mut RECT as *mut c_void, 0);
     }
     if work.right == 0 {
         work.right = 1920;

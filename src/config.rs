@@ -143,10 +143,12 @@ fn candidates() -> Vec<PathBuf> {
 }
 
 pub fn config_path() -> PathBuf {
-    ACTIVE_PATH
-        .get()
-        .cloned()
-        .unwrap_or_else(|| candidates().into_iter().next().unwrap_or_else(|| PathBuf::from("config.json")))
+    ACTIVE_PATH.get().cloned().unwrap_or_else(|| {
+        candidates()
+            .into_iter()
+            .next()
+            .unwrap_or_else(|| PathBuf::from("config.json"))
+    })
 }
 
 pub fn save(cfg: &Config) -> std::io::Result<()> {
@@ -196,7 +198,10 @@ pub fn load() -> Config {
 
     let mut cfg = cfg.unwrap_or_default();
     if ACTIVE_PATH.get().is_none() {
-        let path = candidates().into_iter().next().unwrap_or_else(|| PathBuf::from("config.json"));
+        let path = candidates()
+            .into_iter()
+            .next()
+            .unwrap_or_else(|| PathBuf::from("config.json"));
         let _ = ACTIVE_PATH.set(path);
     }
     if cfg.admin_token.is_empty() {

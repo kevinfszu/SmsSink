@@ -239,7 +239,11 @@ unsafe fn fit_lines(font: HFONT, text: &str, avail: i32, lines: usize) -> String
         out.push(ch);
     }
     // 别把英文单词从中间劈开：末字符还是字母/数字就回退到上一个空格
-    if out.chars().next_back().is_some_and(|c| c.is_ascii_alphanumeric()) {
+    if out
+        .chars()
+        .next_back()
+        .is_some_and(|c| c.is_ascii_alphanumeric())
+    {
         if let Some(idx) = out.rfind(' ') {
             out.truncate(idx);
         }
@@ -700,7 +704,11 @@ unsafe fn cursor_client(s: &CardState) -> Option<(i32, i32)> {
 }
 
 unsafe fn refresh_button(s: &CardState, ctl: usize) {
-    let hwnd = if ctl == ID_COPY { s.btn_copy } else { s.btn_close };
+    let hwnd = if ctl == ID_COPY {
+        s.btn_copy
+    } else {
+        s.btn_close
+    };
     if hwnd != 0 {
         InvalidateRect(hwnd, std::ptr::null(), 0);
     }
@@ -723,10 +731,10 @@ unsafe fn relayout_buttons(s: &mut CardState) {
     let bh = px(dpi, BTN_H);
     let by = s.size.y - bh - px(dpi, 14.0);
     let pad = px(dpi, PAD);
-    let bw_copy = (text_width(s.fonts.button, label) + px(dpi, BTN_PAD_X) * 2)
-        .max(px(dpi, BTN_MIN_W));
-    let bw_close = (text_width(s.fonts.button, CLOSE_LABEL) + px(dpi, BTN_PAD_X) * 2)
-        .max(px(dpi, BTN_MIN_W));
+    let bw_copy =
+        (text_width(s.fonts.button, label) + px(dpi, BTN_PAD_X) * 2).max(px(dpi, BTN_MIN_W));
+    let bw_close =
+        (text_width(s.fonts.button, CLOSE_LABEL) + px(dpi, BTN_PAD_X) * 2).max(px(dpi, BTN_MIN_W));
     let x_copy = s.size.x - pad - bw_copy;
     let x_close = x_copy - px(dpi, BTN_GAP) - bw_close;
 
@@ -782,7 +790,11 @@ unsafe extern "system" fn button_proc(
         WM_MOUSEMOVE => {
             if let Some(ptr) = state_owner(hwnd) {
                 let s = &mut *ptr;
-                let id = if s.btn_copy == hwnd { ID_COPY } else { ID_CLOSE };
+                let id = if s.btn_copy == hwnd {
+                    ID_COPY
+                } else {
+                    ID_CLOSE
+                };
                 set_hover(s, Some(id));
             }
             // 每次移动重新登记一次「离开通知」，按钮才能及时清掉 hover

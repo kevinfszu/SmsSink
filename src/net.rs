@@ -206,12 +206,26 @@ fn ansi(raw: &[u8]) -> String {
         return String::new();
     }
     unsafe {
-        let n = MultiByteToWideChar(CP_ACP, 0, bytes.as_ptr(), bytes.len() as i32, std::ptr::null_mut(), 0);
+        let n = MultiByteToWideChar(
+            CP_ACP,
+            0,
+            bytes.as_ptr(),
+            bytes.len() as i32,
+            std::ptr::null_mut(),
+            0,
+        );
         if n <= 0 {
             return String::from_utf8_lossy(bytes).into_owned();
         }
         let mut wide = vec![0u16; n as usize];
-        MultiByteToWideChar(CP_ACP, 0, bytes.as_ptr(), bytes.len() as i32, wide.as_mut_ptr(), n);
+        MultiByteToWideChar(
+            CP_ACP,
+            0,
+            bytes.as_ptr(),
+            bytes.len() as i32,
+            wide.as_mut_ptr(),
+            n,
+        );
         String::from_utf16_lossy(&wide)
     }
 }
@@ -228,7 +242,12 @@ mod tests {
         for a in &list {
             println!("{} | {} | wifi={}", a.ip, a.name, a.wifi);
             assert!(usable(&a.ip), "地址不合法: {}", a.ip);
-            assert_eq!(a.ip.parse::<std::net::Ipv4Addr>().is_ok(), true, "不是 IPv4: {}", a.ip);
+            assert_eq!(
+                a.ip.parse::<std::net::Ipv4Addr>().is_ok(),
+                true,
+                "不是 IPv4: {}",
+                a.ip
+            );
         }
         let mut seen = std::collections::HashSet::new();
         for a in &list {

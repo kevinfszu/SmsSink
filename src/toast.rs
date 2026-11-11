@@ -6,7 +6,7 @@ use crate::event::SmsEvent;
 use crate::rules::Decision;
 use crate::{event, store, win};
 use std::sync::Mutex;
-use windows::core::{ComInterface, HSTRING, IInspectable};
+use windows::core::{ComInterface, IInspectable, HSTRING};
 use windows::Data::Xml::Dom::XmlDocument;
 use windows::Foundation::TypedEventHandler;
 use windows::UI::Notifications::{
@@ -41,11 +41,7 @@ pub fn show(d: &Decision, ev: &SmsEvent, row_id: i64) {
 }
 
 fn try_show(d: &Decision, ev: &SmsEvent, row_id: i64) -> Result<(), String> {
-    let cfg = app::get()
-        .cfg
-        .read()
-        .map_err(|e| e.to_string())?
-        .clone();
+    let cfg = app::get().cfg.read().map_err(|e| e.to_string())?.clone();
 
     let tag = format!("sms-{}-{}", row_id, win::now_ms());
     let group = d.rule_name.clone();
@@ -115,10 +111,9 @@ fn try_show(d: &Decision, ev: &SmsEvent, row_id: i64) -> Result<(), String> {
     );
     toast.Activated(&handler).map_err(|e| e.to_string())?;
 
-    let notifier = ToastNotificationManager::CreateToastNotifierWithId(&HSTRING::from(
-        crate::config::AUMID,
-    ))
-    .map_err(|e| e.to_string())?;
+    let notifier =
+        ToastNotificationManager::CreateToastNotifierWithId(&HSTRING::from(crate::config::AUMID))
+            .map_err(|e| e.to_string())?;
     notifier.Show(&toast).map_err(|e| e.to_string())?;
 
     let mut live = LIVE.lock().unwrap_or_else(|e| e.into_inner());

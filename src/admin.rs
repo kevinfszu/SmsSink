@@ -7,10 +7,7 @@ use regex::Regex;
 use serde_json::{json, Value};
 
 fn err(status: u16, msg: &str) -> Resp {
-    Resp::json(
-        status,
-        json!({ "code": status, "msg": msg }).to_string(),
-    )
+    Resp::json(status, json!({ "code": status, "msg": msg }).to_string())
 }
 
 fn body_json(body: &str) -> Result<Value, Resp> {
@@ -111,7 +108,10 @@ fn get_rules() -> Resp {
         .read()
         .unwrap_or_else(|e| e.into_inner())
         .clone();
-    Resp::json(200, serde_json::to_string(&cfg.rules).unwrap_or_else(|_| "[]".into()))
+    Resp::json(
+        200,
+        serde_json::to_string(&cfg.rules).unwrap_or_else(|_| "[]".into()),
+    )
 }
 
 fn put_rules(body: &str) -> Resp {
@@ -213,12 +213,17 @@ fn export_csv(query: &str) -> Resp {
         &query_value(query, "rule"),
         &query_value(query, "q"),
     );
-    let name = format!("sms-sink-{}.csv", win::local_time().replace(['-', ' ', ':'], ""));
+    let name = format!(
+        "sms-sink-{}.csv",
+        win::local_time().replace(['-', ' ', ':'], "")
+    );
     Resp {
         status: 200,
         content_type: "text/csv; charset=utf-8",
         body: csv,
-        extra_header: Some(format!("Content-Disposition: attachment; filename=\"{name}\"")),
+        extra_header: Some(format!(
+            "Content-Disposition: attachment; filename=\"{name}\""
+        )),
     }
 }
 

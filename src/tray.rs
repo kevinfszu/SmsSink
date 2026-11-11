@@ -168,10 +168,9 @@ fn test_notification() {
     // 匹配不到时会走未识别的降级卡片，而不是假装成功。
     let (decision, no_code) = match rules::evaluate_outcome(&cfg, "10086", sample) {
         rules::Outcome::Code(d) => (Some(d), None),
-        rules::Outcome::NoCode { rule_name, notify } => (
-            None,
-            Some(event::NoCodeHit { rule_name, notify }),
-        ),
+        rules::Outcome::NoCode { rule_name, notify } => {
+            (None, Some(event::NoCodeHit { rule_name, notify }))
+        }
         rules::Outcome::NoMatch => (None, None),
     };
     let ev = event::SmsEvent {

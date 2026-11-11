@@ -79,10 +79,7 @@ pub unsafe fn take_copy_text(lparam: isize) -> Box<String> {
 pub fn handle_event(ev: Box<SmsEvent>) {
     let state = app::get();
     let decision = ev.decision.clone();
-    let cfg = state
-        .cfg
-        .read()
-        .unwrap_or_else(|e| e.into_inner());
+    let cfg = state.cfg.read().unwrap_or_else(|e| e.into_inner());
 
     // 规则可单独决定是否留痕；未命中的短信默认不入库，
     // 但"命中却没提取到码"的一律留痕：它通常是规则该改的信号，丢了就查不到。

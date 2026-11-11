@@ -93,7 +93,12 @@ pub fn record(ev: &SmsEvent, stored_content: &str, copied: bool) -> i64 {
         // 命中规则但没提取到码：规则名要记下来，通知方式标记成 unparsed，
         // 管理台据此把它和"完全没命中"区分开（前者是规则该改的信号）
         None => match &ev.no_code {
-            Some(hit) => (hit.rule_name.clone(), String::new(), "unparsed".into(), false),
+            Some(hit) => (
+                hit.rule_name.clone(),
+                String::new(),
+                "unparsed".into(),
+                false,
+            ),
             None => (String::new(), String::new(), "none".into(), false),
         },
     };
@@ -174,13 +179,7 @@ fn map_row(r: &rusqlite::Row<'_>) -> rusqlite::Result<Row> {
 const SELECT: &str = "SELECT id, ts_ms, local_time, sender, content, rule_name, extracted,
                              notify, auto_copy, copied FROM messages";
 
-pub fn recent(
-    limit: usize,
-    offset: usize,
-    sender: &str,
-    rule: &str,
-    query: &str,
-) -> Vec<Row> {
+pub fn recent(limit: usize, offset: usize, sender: &str, rule: &str, query: &str) -> Vec<Row> {
     let Some(db) = conn() else {
         return Vec::new();
     };
@@ -288,7 +287,8 @@ fn csv_cell(s: &str) -> String {
 
 pub fn export_csv(sender: &str, rule: &str, query: &str) -> String {
     let rows = recent(100_000, 0, sender, rule, query);
-    let mut out = String::from("\u{FEFF}ID,时间,来源,命中规则,提取值,通知方式,自动复制,已复制,原文\n");
+    let mut out =
+        String::from("\u{FEFF}ID,时间,来源,命中规则,提取值,通知方式,自动复制,已复制,原文\n");
     for r in rows {
         out.push_str(&format!(
             "{},{},{},{},{},{},{},{},{}\n",
