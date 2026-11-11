@@ -17,7 +17,7 @@ cargo build --release
 管理台 http://127.0.0.1:8787/?token=<32位十六进制>
 ```
 
-托盘图标右键菜单：**打开管理台 / 最近验证码 / 发送测试通知 / 重载配置 / 开机自动启动 / 退出**。
+托盘图标右键菜单：**打开管理台 / 最近验证码 / 发送测试通知 / 重载配置 / 开机自动启动 / 退出**。  
 开机自启写 `HKCU\Software\Microsoft\Windows\CurrentVersion\Run`，不需要管理员权限。进程用互斥体保证单实例。
 
 调试或自动化时用 `SmsSink.exe --no-ui`：只接收与落盘，不创建托盘、不弹通知、不写剪贴板。`--help` 查看参数。
@@ -37,32 +37,46 @@ cargo build --release
 
 ## 网络与防火墙
 
-Windows 默认拦截入站连接，需以管理员身份添加一条**仅专用网络**、仅本程序、仅该端口的规则：
+Windows 默认拦截入站连接，需以管理员身份添加一条入站规则。规则必须覆盖**所有网络配置文件**（`-Profile Any`），并用 `LocalSubnet` 把来源限制在本地子网：
 
 ```powershell
 New-NetFirewallRule `
   -DisplayName "SMS 接码器 · 局域网入站" `
   -Direction Inbound -Protocol TCP -LocalPort 8787 `
-  -Action Allow -Profile Private `
+  -Action Allow -Profile Any -RemoteAddress LocalSubnet `
   -Program "E:\001-Program\SmsSink\target\release\SmsSink.exe"
 ```
 
-建议在路由器上给电脑绑定固定 IP，否则 DHCP 续租后手机端会发丢。**电脑休眠时收不到推送**，需要在电源设置里允许不休眠或网络唤醒。
+> **不要用 `-Profile Private`。** 电脑开启「移动热点」让手机直连时，热点虚拟网卡（`Microsoft Wi-Fi Direct Virtual Adapter`，IP 通常是 `192.168.137.1`）属于**公用网络**，专用网络规则不会对它生效，手机端只会得到「请求失败：网络连接超时」。已建的规则可就地修正：
+>
+> ```powershell
+> Set-NetFirewallRule -DisplayName "SMS 接码器 · 局域网入站" -Profile Any -RemoteAddress LocalSubnet
+> ```
+>
+> 也可直接双击 `scripts\fix-firewall.cmd`（自动申请管理员权限，并清理指向旧目录的失效规则）。
+
+### 连不上时先做连通性自检
+
+手机浏览器直接打开 `http://<电脑IP>:8787/ping`，返回 `{"code":0,...,"peer":"192.168.137.51"}` 即说明网络与防火墙都通了，此时再排查 SmsForwarder 通道配置；若浏览器同样超时，问题在网络层，不在本程序。
+
+- 服务端自查：程序需在运行且监听 `0.0.0.0:8787`（`Get-NetTCPConnection -LocalPort 8787 -State Listen`）。管理台与 `/api/*` 仅允许本机回环访问，手机访问会返回 403，这是预期行为。
+- 手机若同时开着移动数据，部分 Android 会在 Wi-Fi 被判定「无互联网」时把请求切到蜂窝网络，`192.168.137.1` 自然不可达。排查时先关闭移动数据，并确认 Wi-Fi 详情里手机 IP 在 `192.168.137.x` 网段。
+- 建议在路由器上给电脑绑定固定 IP，否则 DHCP 续租后手机端会发丢。**电脑休眠时收不到推送**，需要在电源设置里允许不休眠或网络唤醒。
 
 ## 规则
 
 管理台「规则管理」里增删改，保存后立即生效，无需重启。也支持直接编辑 `config.json` 后点托盘「重载配置」。
 
-| 字段 | 说明 |
-|---|---|
-| `name` / `enabled` / `priority` | 规则名、开关、优先级（大者优先，首个命中即用） |
-| `match_from` | 发送方号码 / 包名，包含即命中；留空不限来源 |
-| `keywords_any` / `keywords_all` / `exclude` | 任一包含 / 全部包含 / 排除关键词 |
-| `extract` / `capture` | 提取正则与捕获组序号 |
-| `notify` | `toast`（通知中心 + 复制按钮）/ `card`（右下角大号卡片）/ `silent`（仅入历史） |
-| `auto_copy` | 收到即写入剪贴板，**默认 false** |
-| `copy_template` | 复制文本模板，支持 `{code}` `{from}` `{content}` |
-| `ttl_sec` / `keep_history` | 验证码有效期提示 / 是否落盘留痕 |
+| 字段                                          | 说明                                                    |
+| ------------------------------------------- | ----------------------------------------------------- |
+| `name` / `enabled` / `priority`             | 规则名、开关、优先级（大者优先，首个命中即用）                               |
+| `match_from`                                | 发送方号码 / 包名，包含即命中；留空不限来源                               |
+| `keywords_any` / `keywords_all` / `exclude` | 任一包含 / 全部包含 / 排除关键词                                   |
+| `extract` / `capture`                       | 提取正则与捕获组序号                                            |
+| `notify`                                    | `toast`（通知中心 + 复制按钮）/ `card`（右下角大号卡片）/ `silent`（仅入历史） |
+| `auto_copy`                                 | 收到即写入剪贴板，**默认 false**                                 |
+| `copy_template`                             | 复制文本模板，支持 `{code}` `{from}` `{content}`               |
+| `ttl_sec` / `keep_history`                  | 验证码有效期提示 / 是否落盘留痕                                     |
 
 样例短信：
 

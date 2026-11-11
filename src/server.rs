@@ -113,6 +113,27 @@ fn handle(mut stream: TcpStream, state: Arc<AppState>) {
     let raw_path = parts.next().unwrap_or("/");
     let (path, query) = raw_path.split_once('?').unwrap_or((raw_path, ""));
 
+    // 局域网连通性自检：手机浏览器可直接访问，用来区分「网络/防火墙不通」与「通道配置错误」。
+    // 只返回状态与对端 IP，不暴露任何配置或短信内容，也无需 token。
+    if method == "GET" && path == "/ping" {
+        let peer = stream
+            .peer_addr()
+            .map(|a| a.ip().to_string())
+            .unwrap_or_else(|_| "unknown".into());
+        respond(
+            &mut stream,
+            Resp::json(
+                200,
+                format!(
+                    r#"{{"code":0,"app":"{}","status":"reachable","peer":"{}"}}"#,
+                    crate::config::APP_ID,
+                    peer
+                ),
+            ),
+        );
+        return;
+    }
+
     let cfg = state.cfg.read().unwrap_or_else(|e| e.into_inner()).clone();
 
     // 手机端推送：唯一允许来自局域网的路径，靠 HMAC 加签鉴权
