@@ -1,6 +1,6 @@
 use crate::app::AppState;
 use crate::config::SUCCESS_MARK;
-use crate::rules::evaluate;
+use crate::rules::{evaluate_outcome, Outcome};
 use crate::{admin, event, win};
 use base64::engine::general_purpose::STANDARD;
 use base64::Engine as _;
@@ -198,7 +198,16 @@ fn receive(
         inbox.from,
         inbox.content.chars().count()
     );
-    let decision = evaluate(cfg, &inbox.from, &inbox.content);
+    // 「没命中」和「命中了但没提取到码」必须区分开：后者要让用户看见，
+    // 否则他只会觉得短信没到。判定细节交给 rules 层，这里只做搬运。
+    let (decision, no_code) = match evaluate_outcome(cfg, &inbox.from, &inbox.content) {
+        Outcome::Code(d) => (Some(d), None),
+        Outcome::NoCode { rule_name, notify } => (
+            None,
+            Some(event::NoCodeHit { rule_name, notify }),
+        ),
+        Outcome::NoMatch => (None, None),
+    };
     event::submit(event::SmsEvent {
         from: inbox.from,
         content: inbox.content,
@@ -208,6 +217,7 @@ fn receive(
             .unwrap_or_else(|_| win::now_ms()),
         local_time: win::local_time(),
         decision,
+        no_code,
     });
 
     respond(

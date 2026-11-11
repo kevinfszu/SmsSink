@@ -49,14 +49,36 @@ fn extract_from(rule: &Rule, content: &str) -> Result<Option<String>, String> {
     }))
 }
 
-/// 按优先级自上而下匹配，首个命中即返回。
-pub fn evaluate(cfg: &Config, from: &str, content: &str) -> Option<Decision> {
+/// 一条短信的归属判定结果。
+///
+/// 「没命中规则」和「命中了但没提取到验证码」对用户是完全不同的两件事：
+/// 前者是别人的短信，可以不管；后者是他正等着的码，只是格式变了。
+/// 早期两者都返回 `None`，于是后者被静默丢弃——这是验证码工具最不能犯的错。
+pub enum Outcome {
+    /// 命中规则且提取到验证码
+    Code(Decision),
+    /// 命中规则但没提取到验证码，按该规则的通知方式降级提示
+    NoCode {
+        rule_name: String,
+        notify: crate::config::NotifyMode,
+    },
+    /// 没有任何规则命中
+    NoMatch,
+}
+
+/// 按优先级自上而下匹配，首个命中且提取成功的规则即返回；
+/// 若所有命中规则的提取都失败，返回第一条命中规则的 `NoCode`。
+pub fn evaluate_outcome(cfg: &Config, from: &str, content: &str) -> Outcome {
     let mut ordered: Vec<&Rule> = cfg.rules.iter().collect();
     ordered.sort_by(|a, b| b.priority.cmp(&a.priority));
 
+    let mut fallback: Option<&Rule> = None;
     for rule in ordered {
         if !conditions_met(rule, from, content) {
             continue;
+        }
+        if fallback.is_none() {
+            fallback = Some(rule);
         }
         let code = match extract_from(rule, content) {
             Ok(Some(c)) if !c.is_empty() => c,
@@ -67,7 +89,7 @@ pub fn evaluate(cfg: &Config, from: &str, content: &str) -> Option<Decision> {
             }
         };
         let template = rule.copy_template.as_deref().unwrap_or("{code}");
-        return Some(Decision {
+        return Outcome::Code(Decision {
             rule_name: rule.name.clone(),
             code: code.clone(),
             notify: rule.notify,
@@ -77,7 +99,14 @@ pub fn evaluate(cfg: &Config, from: &str, content: &str) -> Option<Decision> {
             keep_history: rule.keep_history,
         });
     }
-    None
+
+    match fallback {
+        Some(rule) => Outcome::NoCode {
+            rule_name: rule.name.clone(),
+            notify: rule.notify,
+        },
+        None => Outcome::NoMatch,
+    }
 }
 
 /// 管理台「样例短信试跑」，把每一步判断结果返回给界面

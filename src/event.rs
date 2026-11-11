@@ -14,6 +14,9 @@ pub const WM_APP_COPY: u32 = 0x8000 + 2;
 pub const WM_APP_TEST: u32 = 0x8000 + 3;
 pub const WM_APP_QUIT: u32 = 0x8000 + 4;
 pub const WM_APP_TRAY: u32 = 0x8000 + 5;
+/// 第二个实例启动时向已有实例打招呼：让常驻实例给出可见回执，
+/// 而不是新进程静默退出（双击没反应会被当成程序坏了）。
+pub const WM_APP_POKE: u32 = 0x8000 + 6;
 
 #[derive(Debug, Clone)]
 pub struct SmsEvent {
@@ -22,6 +25,15 @@ pub struct SmsEvent {
     pub timestamp_ms: i64,
     pub local_time: String,
     pub decision: Option<Decision>,
+    /// 关键词命中、但正则没提取到验证码时的规则信息。
+    /// 这一档不能当"没收到"处理——用户等的正是这条短信。
+    pub no_code: Option<NoCodeHit>,
+}
+
+#[derive(Debug, Clone)]
+pub struct NoCodeHit {
+    pub rule_name: String,
+    pub notify: NotifyMode,
 }
 
 /// 从任意线程提交；若 UI 消息窗口不可用则在当前线程同步处理。
@@ -72,10 +84,12 @@ pub fn handle_event(ev: Box<SmsEvent>) {
         .read()
         .unwrap_or_else(|e| e.into_inner());
 
-    // 规则可单独决定是否留痕；未命中的短信默认不入库
-    let keep = match &decision {
-        Some(d) => d.keep_history,
-        None => cfg.keep_unmatched,
+    // 规则可单独决定是否留痕；未命中的短信默认不入库，
+    // 但"命中却没提取到码"的一律留痕：它通常是规则该改的信号，丢了就查不到。
+    let keep = match (&decision, &ev.no_code) {
+        (Some(d), _) => d.keep_history,
+        (None, Some(_)) => true,
+        (None, None) => cfg.keep_unmatched,
     };
     let stored_content = if cfg.mask_content {
         crate::store::mask_digits(&ev.content, decision.as_ref().map(|d| d.code.as_str()))
@@ -90,6 +104,22 @@ pub fn handle_event(ev: Box<SmsEvent>) {
     drop(cfg);
 
     let Some(d) = decision else {
+        // 命中了规则却没提取到验证码：这是"收到了但没读懂"，必须让用户看见。
+        // 静默规则保持静默（用户明确说过别打扰），其余一律给一张降级卡片。
+        if let Some(hit) = ev.no_code.clone() {
+            println!(
+                "[sink]   {} 命中规则「{}」但未提取到验证码",
+                ev.local_time, hit.rule_name
+            );
+            if HEADLESS.load(Ordering::SeqCst) {
+                return;
+            }
+            match hit.notify {
+                NotifyMode::Silent => println!("[sink]   静默规则，仅写入最近记录"),
+                _ => crate::card::show_unparsed(&ev, &ev.content),
+            }
+            return;
+        }
         println!("[sink]   {} 未命中任何规则", ev.local_time);
         return;
     };

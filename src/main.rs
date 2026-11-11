@@ -9,6 +9,7 @@ mod card;
 mod config;
 mod event;
 mod font;
+mod hint;
 mod rules;
 mod server;
 mod store;
@@ -87,8 +88,18 @@ fn main() {
     }
 
     if !probe_ui && !win::claim_single_instance(config::SINGLE_INSTANCE_MUTEX) {
-        eprintln!("[fatal] 已有 SmsSink 实例在运行，本进程退出");
-        std::process::exit(1);
+        // 双击第二份时静默退出，等于「点了没反应」——用户会以为程序坏了。
+        // 已有实例就在托盘里，让它自己冒一条提示，比新进程猜怎么反馈更靠谱。
+        println!("[info] 已有 SmsSink 实例在运行，通知它给出提示");
+        if !headless {
+            let hwnd = win::find_window(tray::WINDOW_CLASS);
+            if hwnd != 0 {
+                unsafe {
+                    win::PostMessageW(hwnd, event::WM_APP_POKE, 0, 0);
+                }
+            }
+        }
+        std::process::exit(0);
     }
 
     // COM 必须在将要使用 WinRT Toast 的线程（主/UI 线程）上初始化
@@ -108,6 +119,21 @@ fn main() {
     // 提前占位检测，端口冲突时直接报错而不是让后台线程悄悄退出
     if let Err(e) = TcpListener::bind((cfg.listen.as_str(), cfg.port)) {
         eprintln!("[fatal] 端口 {}:{} 不可用: {e}", cfg.listen, cfg.port);
+        // 双击启动时没有控制台，静默退出会让用户以为程序坏了：必须给一个可见的说明
+        if !headless {
+            win::error_box(
+                &format!(
+                    "端口 {} 被占用，SmsSink 无法启动。\n\n\
+                     常见原因：\n\
+                     · 已经有一个 SmsSink 在运行（看右下角托盘）\n\
+                     · 该端口被其它程序占用\n\n\
+                     如果是端口冲突，把配置里的 port 改成一个空闲端口再启动：\n{}",
+                    cfg.port,
+                    config::config_path().display()
+                ),
+                &format!("{} · 启动失败", config::APP_DISPLAY_NAME),
+            );
+        }
         std::process::exit(1);
     }
 

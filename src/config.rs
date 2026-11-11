@@ -67,7 +67,10 @@ impl Default for Rule {
             exclude: Vec::new(),
             extract: r"(?:验证码|校验码|动态密码)[^\d]{0,8}(\d{4,8})".into(),
             capture: 1,
-            notify: NotifyMode::Toast,
+            // 默认走自绘卡片：Toast 在「未安装带 AUMID 的开始菜单快捷方式」的环境里
+            // 只会静默进入通知中心、不弹横幅，用户会以为没收到。卡片是我们完全掌控的
+            // 通道：一定可见、带复制按钮、不抢焦点。
+            notify: NotifyMode::Card,
             auto_copy: false,
             copy_template: Some("{code}".into()),
             ttl_sec: 180,

@@ -102,7 +102,20 @@ pub struct DRAWITEMSTRUCT {
     pub itemData: usize,
 }
 
-/// 四角圆角矩形的 GDI 区域（用于给无边框弹窗做圆角）
+/// 鼠标离开窗口的订阅（WM_MOUSELEAVE 只有订阅后才会收到）
+#[repr(C)]
+pub struct TRACKMOUSEEVENT {
+    pub cbSize: DWORD,
+    pub dwFlags: DWORD,
+    pub hwndTrack: HWND,
+    pub dwHoverTime: DWORD,
+}
+
+pub const TME_LEAVE: DWORD = 0x0000_0002;
+pub const WM_MOUSEMOVE: UINT = 0x0200;
+pub const WM_MOUSELEAVE: UINT = 0x02A3;
+
+/// 窗口圆角（Win11）
 pub const DWMWA_WINDOW_CORNER_PREFERENCE: DWORD = 33;
 pub const DWMWCP_ROUND: i32 = 2;
 
@@ -184,16 +197,35 @@ pub const NIM_SETVERSION: DWORD = 4;
 pub const NIF_MESSAGE: UINT = 0x01;
 pub const NIF_ICON: UINT = 0x02;
 pub const NIF_TIP: UINT = 0x04;
+/// 气泡通知（托盘图标上弹出的提示条）
+pub const NIF_INFO: UINT = 0x10;
+pub const NIIF_INFO: DWORD = 0x1;
+pub const NIIF_WARNING: DWORD = 0x2;
+pub const NIIF_ERROR: DWORD = 0x3;
+/// 气泡不发声，避免打断正在进行的输入
+pub const NIIF_NOSOUND: DWORD = 0x10;
 pub const NOTIFYICON_VERSION_4: UINT = 4;
+
+pub const MB_OK: UINT = 0x0;
+pub const MB_ICONERROR: UINT = 0x10;
+pub const MB_ICONINFORMATION: UINT = 0x40;
+pub const MB_SETFOREGROUND: UINT = 0x1_0000;
+pub const MB_TOPMOST: UINT = 0x4_0000;
 
 pub const MF_STRING: UINT = 0x0000;
 pub const MF_CHECKED: UINT = 0x0008;
 pub const MF_UNCHECKED: UINT = 0x0000;
 pub const MF_SEPARATOR: UINT = 0x0800;
 pub const MF_GRAYED: UINT = 0x0001;
+pub const MF_DISABLED: UINT = 0x0002;
+pub const MF_BYCOMMAND: UINT = 0x0000;
+/// 挂一个子菜单（id 位置传子菜单句柄）
+pub const MF_POPUP: UINT = 0x0010;
 pub const TPM_RIGHTBUTTON: UINT = 0x0002;
 pub const TPM_RETURNCMD: UINT = 0x0100;
 pub const TPM_NONOTIFY: UINT = 0x0080;
+pub const TPM_BOTTOMALIGN: UINT = 0x0020;
+pub const TPM_RIGHTALIGN: UINT = 0x0008;
 
 pub const IDI_APPLICATION: usize = 32512;
 pub const IDC_ARROW: usize = 32512;
@@ -295,6 +327,7 @@ extern "system" {
     pub fn GetWindowLongPtrW(hwnd: HWND, index: i32) -> isize;
     pub fn GetClientRect(hwnd: HWND, rect: *mut RECT) -> BOOL;
     pub fn GetParent(hwnd: HWND) -> HWND;
+    pub fn FindWindowW(class: *const u16, title: *const u16) -> HWND;
     pub fn BeginPaint(hwnd: HWND, ps: *mut PAINTSTRUCT) -> HDC;
     pub fn EndPaint(hwnd: HWND, ps: *const PAINTSTRUCT) -> BOOL;
     pub fn FillRect(hdc: HDC, rect: *const RECT, brush: HBRUSH) -> i32;
@@ -341,6 +374,11 @@ extern "system" {
     pub fn EmptyClipboard() -> BOOL;
     pub fn SetClipboardData(format: UINT, mem: HANDLE) -> HANDLE;
     pub fn CloseClipboard() -> BOOL;
+    pub fn MessageBoxW(hwnd: HWND, text: *const u16, caption: *const u16, flags: UINT) -> i32;
+    pub fn TrackMouseEvent(event: *mut TRACKMOUSEEVENT) -> BOOL;
+    pub fn SetCursor(pos: *mut POINT) -> BOOL;
+    pub fn InvalidateRect(hwnd: HWND, rect: *const RECT, erase: BOOL) -> BOOL;
+    pub fn UpdateWindow(hwnd: HWND) -> BOOL;
 }
 
 #[link(name = "gdi32")]
@@ -706,6 +744,12 @@ pub fn claim_single_instance(name: &str) -> bool {
     }
 }
 
+/// 按窗口类名找已有的实例窗口（用于"又来一个实例"时给它发消息）
+pub fn find_window(class: &str) -> HWND {
+    let c = wide(class);
+    unsafe { FindWindowW(c.as_ptr(), std::ptr::null()) }
+}
+
 pub fn open_url(url: &str) {
     let file = wide(url);
     let open = wide("open");
@@ -851,4 +895,80 @@ pub fn auto_start_enabled() -> bool {
         RegCloseKey(hkey);
     }
     found
+}
+
+// ---------- 托盘气泡 / 对话框 / 菜单拼装 ----------
+//
+// 托盘菜单和气泡是「看不见的控制台」唯一的反馈通道：程序以 GUI 子系统启动时
+// stdout 被丢进 NUL，任何只写日志的提示等于没有。下面三个小工具就是为了让
+// 每个用户动作都有可见回执。
+
+/// 托盘图标的 uID，Shell_NotifyIcon 的所有调用（含气泡）必须一致
+pub const TRAY_ICON_ID: UINT = 1;
+pub const NIM_MODIFY: DWORD = 1;
+
+/// 把字符串写进定长宽字符数组并补 NUL，超长截断。
+fn fill_wide(dest: &mut [u16], text: &str) {
+    let mut n = 0;
+    for unit in text.encode_utf16().take(dest.len().saturating_sub(1)) {
+        dest[n] = unit;
+        n += 1;
+    }
+    dest[n] = 0;
+}
+
+/// 在托盘图标上弹气泡提示。`warning` 为 true 时用警告图标。
+pub fn notify_balloon(hwnd: HWND, title: &str, text: &str, warning: bool) {
+    let mut data: NOTIFYICONDATAW = unsafe { std::mem::zeroed() };
+    data.cbSize = std::mem::size_of::<NOTIFYICONDATAW>() as DWORD;
+    data.hWnd = hwnd;
+    data.uID = TRAY_ICON_ID;
+    data.uFlags = NIF_INFO;
+    data.dwInfoFlags = if warning { NIIF_WARNING } else { NIIF_INFO } | NIIF_NOSOUND;
+    fill_wide(&mut data.szInfoTitle, title);
+    fill_wide(&mut data.szInfo, text);
+    unsafe {
+        Shell_NotifyIconW(NIM_MODIFY, &mut data);
+    }
+}
+
+/// 阻塞式提示框，仅用于没有其它反馈通道的致命错误（如端口被占用）。
+pub fn error_box(text: &str, caption: &str) {
+    let t = wide(text);
+    let c = wide(caption);
+    unsafe {
+        MessageBoxW(
+            0,
+            t.as_ptr(),
+            c.as_ptr(),
+            MB_OK | MB_ICONERROR | MB_TOPMOST | MB_SETFOREGROUND,
+        );
+    }
+}
+
+/// 普通菜单项（点击后返回 id）
+pub fn menu_item(menu: HMENU, flags: UINT, id: usize, text: &str) {
+    let t = wide(text);
+    unsafe {
+        AppendMenuW(menu, flags | MF_STRING, id, t.as_ptr());
+    }
+}
+
+/// 状态行：不可点击的说明文字，用来在菜单里展示「今日 12 条 · 监听 8787」
+pub fn menu_status(menu: HMENU, text: &str) {
+    menu_item(menu, MF_DISABLED | MF_GRAYED, 0, text);
+}
+
+pub fn menu_separator(menu: HMENU) {
+    unsafe {
+        AppendMenuW(menu, MF_SEPARATOR, 0, std::ptr::null());
+    }
+}
+
+/// 挂子菜单
+pub fn menu_popup(menu: HMENU, sub: HMENU, text: &str) {
+    let t = wide(text);
+    unsafe {
+        AppendMenuW(menu, MF_POPUP, sub as usize, t.as_ptr());
+    }
 }

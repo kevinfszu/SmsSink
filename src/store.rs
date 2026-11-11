@@ -90,7 +90,12 @@ pub fn record(ev: &SmsEvent, stored_content: &str, copied: bool) -> i64 {
             d.notify.as_str().to_string(),
             d.auto_copy,
         ),
-        None => (String::new(), String::new(), "none".into(), false),
+        // 命中规则但没提取到码：规则名要记下来，通知方式标记成 unparsed，
+        // 管理台据此把它和"完全没命中"区分开（前者是规则该改的信号）
+        None => match &ev.no_code {
+            Some(hit) => (hit.rule_name.clone(), String::new(), "unparsed".into(), false),
+            None => (String::new(), String::new(), "none".into(), false),
+        },
     };
     let result = guard.execute(
         "INSERT INTO messages
@@ -127,6 +132,28 @@ pub fn mark_copied(id: i64) {
             let _ = guard.execute("UPDATE messages SET copied = 1 WHERE id = ?1", params![id]);
         }
     }
+}
+
+/// 托盘菜单用的轻量汇总：今日条数 + 最后一条时间（没有记录时时间串为空）。
+///
+/// 菜单每次弹出都会调用，必须足够便宜：走 local_time 前缀匹配，命中一次索引扫描。
+pub fn today_summary() -> (i64, String) {
+    let Some(db) = conn() else {
+        return (0, String::new());
+    };
+    let Ok(guard) = db.lock() else {
+        return (0, String::new());
+    };
+    let today = win::local_time();
+    let today = &today[..10.min(today.len())];
+    guard
+        .query_row(
+            "SELECT COUNT(*), IFNULL(MAX(local_time), '')
+             FROM messages WHERE substr(local_time, 1, 10) = ?1",
+            params![today],
+            |r| Ok((r.get::<_, i64>(0)?, r.get::<_, String>(1)?)),
+        )
+        .unwrap_or((0, String::new()))
 }
 
 fn map_row(r: &rusqlite::Row<'_>) -> rusqlite::Result<Row> {
