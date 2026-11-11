@@ -459,12 +459,15 @@ $('gateOk').onclick = async () => {
 };
 $('gateToken').addEventListener('keydown', e => { if(e.key==='Enter') $('gateOk').click(); });
 
+// 切页签即拉一次数据：常驻程序一直在收短信，页面上的列表是上一次渲染的快照。
+// 切回列表要重新请求，否则会看到「刚收到的那条还没出现」。筛选条件与页码保留，不清空。
+const PANE_LOAD = { recent: () => loadRecent(), stats: () => loadStats(), settings: () => loadSettings() };
 document.querySelectorAll('nav button').forEach(b => b.onclick = () => {
   document.querySelectorAll('nav button').forEach(x=>x.classList.remove('on'));
   document.querySelectorAll('section').forEach(x=>x.classList.remove('on'));
   b.classList.add('on'); $(b.dataset.tab).classList.add('on');
-  if(b.dataset.tab==='stats') loadStats();
-  if(b.dataset.tab==='settings') loadSettings();
+  const load = PANE_LOAD[b.dataset.tab];
+  if(load) load().catch(e => { if(e.message!=='unauthorized') tip('刷新失败：'+e.message); });
 });
 
 function hookUrl(){ return 'http://<电脑局域网IP>:'+(STATE.port||8787)+(STATE.hook_path||'/hook'); }
@@ -493,12 +496,15 @@ function stamp(t){
   return {time:m[4], date:(m[1]+'-'+m[2]+'-'+m[3] === today) ? '' : m[2]+'-'+m[3]};
 }
 async function loadRecent(){
-  const q = new URLSearchParams({limit:PAGE_SIZE, offset:page*PAGE_SIZE,
+  // 多要一条用来判断还有没有下一页：后端不返回总数，靠「满页」推断会在最后一页留一个空页
+  const q = new URLSearchParams({limit:PAGE_SIZE+1, offset:page*PAGE_SIZE,
     sender:$('fSender').value.trim(), rule:$('fRule').value.trim(), q:$('fQuery').value.trim()});
   const d = await api('/api/messages?'+q);
-  const rows = d.rows || [];
+  const raw = d.rows || [], rows = raw.slice(0, PAGE_SIZE);
   $('rowsEmpty').style.display = rows.length ? 'none':'block';
   $('pageInfo').textContent = '第 '+(page+1)+' 页 · 本页 '+rows.length+' 条';
+  $('btnPrev').disabled = page === 0;
+  $('btnNext').disabled = raw.length <= PAGE_SIZE;
   $('rows').innerHTML = rows.map((r, i) => {
     const st = stamp(r.local_time);
     const state = r.extracted
@@ -528,6 +534,22 @@ async function loadRecent(){
     catch(e){ tip('复制失败：'+e.message); }
   });
 }
+// 工具栏与分页：改条件一律回到第 1 页，否则会停在越界的空白页上
+const reloadFirst = () => { page = 0; loadRecent().catch(e => tip('刷新失败：'+e.message)); };
+$('btnRefresh').onclick = reloadFirst;
+['fSender','fRule','fQuery'].forEach(id => $(id).addEventListener('keydown', e => { if(e.key==='Enter') reloadFirst(); }));
+$('btnPrev').onclick = () => { if(page > 0){ page--; loadRecent().catch(e => tip('加载失败：'+e.message)); } };
+$('btnNext').onclick = () => { page++; loadRecent().catch(e => tip('加载失败：'+e.message)); };
+$('btnCsv').onclick = async () => {
+  const q = new URLSearchParams({sender:$('fSender').value.trim(),rule:$('fRule').value.trim(),q:$('fQuery').value.trim()});
+  try{
+    const r = await fetch('/api/export.csv?'+q,{headers:{'X-SmsSink-Token':TOKEN}});
+    if(!r.ok) throw new Error('HTTP '+r.status);
+    const blob = await r.blob(), url = URL.createObjectURL(blob), a = document.createElement('a');
+    a.href = url; a.download = 'sms-sink-'+new Date().toISOString().slice(0,10)+'.csv'; a.click();
+    setTimeout(()=>URL.revokeObjectURL(url), 1000); tip('CSV 已导出');
+  }catch(e){ tip('导出失败：'+e.message); }
+};
 /* ---------- 规则 ---------- */
 const F = ['name','priority','match_from','keywords_any','keywords_all','exclude','extract','capture','notify','ttl_sec','copy_template','enabled','auto_copy','keep_history'];
 function blank(){ return {name:'新规则',enabled:true,priority:10,match_from:[],keywords_any:['验证码'],keywords_all:[],exclude:[],
@@ -632,7 +654,6 @@ $('btnCopyHook').onclick = async ()=>{
   catch(e){ $('hookUrl').select(); document.execCommand('copy'); tip('已复制 Webhook 地址'); }
 };
 
-if(location.hash==='#recent'){document.querySelector('[data-tab=recent]').click()}
 boot();
 </script>
 </body>
