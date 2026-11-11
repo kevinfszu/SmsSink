@@ -47,13 +47,28 @@ const COPY_FAIL_LABEL: &str = "复制失败";
 
 // 逻辑尺寸，实际按 DPI 缩放
 const CARD_W: f64 = 380.0;
-const CARD_H: f64 = 180.0;
+/// 比上一版高 12px：给原文的第二行和顶部时间的右上角留位
+const CARD_H: f64 = 192.0;
 const PAD: f64 = 20.0;
 const BTN_H: f64 = 30.0;
-const BTN_COPY_W: f64 = 72.0;
-const BTN_CLOSE_W: f64 = 60.0;
-const BTN_GAP: f64 = 8.0;
+/// 按钮宽度 = 文案宽度 + 两侧各 14px。文案决定宽度，按钮里就不会出现
+/// 「两边空一大块、字挤在中间」的观感；最长的文案（已复制 / 复制失败）
+/// 在创建时就算进去，切换状态时按钮不会跳宽。
+const BTN_PAD_X: f64 = 14.0;
+const BTN_MIN_W: f64 = 52.0;
+const BTN_GAP: f64 = 12.0;
 const PROGRESS_H: f64 = 3.0;
+
+// 纵向节奏（逻辑像素，自卡片顶边算起）。时间被移到标题行右侧后，
+// 原文可以完整占两行——长短信不再在第一行末尾就被截断。
+const TOP_ROW_TOP: f64 = 16.0;
+const TOP_ROW_BOTTOM: f64 = 34.0;
+const CODE_TOP: f64 = 40.0;
+const CODE_BOTTOM: f64 = 94.0;
+const BODY_TOP: f64 = 100.0;
+const BODY_BOTTOM: f64 = 136.0;
+/// 标题与右上角时间之间的最小间距
+const TITLE_TIME_GAP: f64 = 12.0;
 
 // 字号（逻辑像素）。中文 UI 字体在 12px 才站得住，比原先的 11px 略大，
 // 这是系统 zh-CN 界面正文的常规尺寸。
@@ -132,6 +147,8 @@ struct CardState {
     /// 两个按钮的客户区矩形，用于命中测试
     rc_copy: RECT,
     rc_close: RECT,
+    /// 右上角时间文字的像素宽度（创建时量一次，重绘时不再建 DC）
+    time_w: i32,
     /// 卡片客户区尺寸与左上角的屏幕坐标。
     /// 无边框弹出窗口的客户区原点与窗口原点重合，靠它就能把 `GetCursorPos`
     /// 的屏幕坐标换算成客户区坐标——`win` 里没有 ScreenToClient 可用。
@@ -173,6 +190,88 @@ impl CardState {
 /// 逻辑像素 → 设备像素
 fn px(dpi: u32, v: f64) -> i32 {
     (v * dpi as f64 / 96.0).round() as i32
+}
+
+/// 把一段文字裁到「最多 N 行」，超出的部分补省略号。
+///
+/// 不依赖 `DrawText` 的多行省略：`DT_WORDBREAK` 只按矩形裁切，
+/// 矩形高度只要够第三行，就会露出半行字。这里先按可用宽度算总预算，
+/// 逐字累加到放不下为止，保证结果不会超过 N 行。
+unsafe fn fit_lines(font: HFONT, text: &str, avail: i32, lines: usize) -> String {
+    if avail <= 0 || text.is_empty() {
+        return text.to_string();
+    }
+    let dc = CreateCompatibleDC(0);
+    if dc == 0 {
+        return text.to_string();
+    }
+    let old = SelectObject(dc, font);
+    let measure_units = |units: &[u16]| -> i32 {
+        let mut sz = SIZE::default();
+        GetTextExtentPoint32W(dc, units.as_ptr(), units.len() as i32, &mut sz);
+        sz.cx
+    };
+
+    let mut widths: Vec<(char, i32)> = Vec::with_capacity(text.chars().count());
+    let mut total = 0;
+    for ch in text.chars() {
+        let mut buf = [0u16; 2];
+        let w = measure_units(ch.encode_utf16(&mut buf));
+        total += w;
+        widths.push((ch, w));
+    }
+    let budget = avail * lines as i32;
+    if total <= budget {
+        SelectObject(dc, old);
+        DeleteDC(dc);
+        return text.to_string();
+    }
+
+    let ellipsis = measure_units(&"…".encode_utf16().collect::<Vec<u16>>());
+    let limit = budget - ellipsis;
+    let mut acc = 0;
+    let mut out = String::new();
+    for (ch, w) in widths {
+        if acc + w > limit {
+            break;
+        }
+        acc += w;
+        out.push(ch);
+    }
+    // 别把英文单词从中间劈开：末字符还是字母/数字就回退到上一个空格
+    if out.chars().next_back().is_some_and(|c| c.is_ascii_alphanumeric()) {
+        if let Some(idx) = out.rfind(' ') {
+            out.truncate(idx);
+        }
+    }
+    out.push('…');
+
+    SelectObject(dc, old);
+    DeleteDC(dc);
+    out
+}
+
+/// 量一段文字在给定字体下的设备像素宽度。
+///
+/// 按钮宽度靠它算，不写死数字：中文「复制」和「复制失败」差一倍宽，
+/// 写死的宽度要么留白过多、要么把字挤在一起。
+unsafe fn text_width(font: HFONT, text: &str) -> i32 {
+    let dc = CreateCompatibleDC(0);
+    if dc == 0 {
+        return 0;
+    }
+    let old = SelectObject(dc, font);
+    let mut sz = SIZE::default();
+    let units = wide(text);
+    GetTextExtentPoint32W(
+        dc,
+        units.as_ptr(),
+        (units.len().saturating_sub(1)) as i32,
+        &mut sz,
+    );
+    SelectObject(dc, old);
+    DeleteDC(dc);
+    sz.cx
 }
 
 fn class_name() -> &'static Vec<u16> {
@@ -344,6 +443,27 @@ unsafe fn paint(hwnd: HWND) {
     let pad = px(dpi, PAD);
     let right = rc.right - pad;
 
+    // 时间：右上角，与标题同一行。放在正文下面时它要和原文抢两行空间；
+    // 时间本就属于「元信息」，靠右单独成列，正文就能完整占住两行。
+    let time_w = s.time_w;
+    let time_right = right;
+    let time_left = (time_right - time_w).max(pad);
+    if time_left > pad {
+        line(
+            hdc,
+            f.body,
+            pal.muted,
+            &s.time,
+            RECT {
+                left: time_left,
+                top: px(dpi, TOP_ROW_TOP),
+                right: time_right,
+                bottom: px(dpi, TOP_ROW_BOTTOM),
+            },
+            DT_RIGHT,
+        );
+    }
+
     // 标题：弱化成次要信息，不与验证码争视线。
     // 内容只讲「谁发的、被哪条规则抓到」——应用名用户早就知道，
     // 「· 验证码」这类固定词也没有信息量。
@@ -354,9 +474,9 @@ unsafe fn paint(hwnd: HWND) {
         &s.title,
         RECT {
             left: pad,
-            top: px(dpi, 16.0),
-            right,
-            bottom: px(dpi, 32.0),
+            top: px(dpi, TOP_ROW_TOP),
+            right: (time_left - px(dpi, TITLE_TIME_GAP)).max(pad),
+            bottom: px(dpi, TOP_ROW_BOTTOM),
         },
         DT_LEFT | DT_END_ELLIPSIS,
     );
@@ -372,46 +492,33 @@ unsafe fn paint(hwnd: HWND) {
                 &s.code,
                 RECT {
                     left: pad,
-                    top: px(dpi, 32.0),
+                    top: px(dpi, CODE_TOP),
                     right,
-                    bottom: px(dpi, 86.0),
+                    bottom: px(dpi, CODE_BOTTOM),
                 },
                 DT_LEFT,
             );
             SetTextCharacterExtra(hdc, 0);
 
-            // 时间：最弱
-            line(
-                hdc,
-                f.body,
-                pal.muted,
-                &s.time,
-                RECT {
-                    left: pad,
-                    top: px(dpi, 88.0),
-                    right,
-                    bottom: px(dpi, 104.0),
-                },
-                DT_LEFT,
-            );
-
-            // 原文：同属降级信息，但比时间要能读
-            line(
+            // 原文：两行。长短信（含前后缀说明）基本都能读完，
+            // 再长才按末行省略号截断。
+            block(
                 hdc,
                 f.body,
                 pal.text,
                 &s.content,
                 RECT {
                     left: pad,
-                    top: px(dpi, 106.0),
+                    top: px(dpi, BODY_TOP),
                     right,
-                    bottom: px(dpi, 124.0),
+                    bottom: px(dpi, BODY_BOTTOM),
                 },
-                DT_LEFT | DT_END_ELLIPSIS,
+                DT_LEFT | DT_WORDBREAK | DT_END_ELLIPSIS,
             );
         }
         Kind::Plain => {
-            // 没有验证码可强调，原文就升为主角：占两行，让用户能自己找关键数字
+            // 没有验证码可强调，原文就升为主角：时间移到右上角之后，
+            // 原文可以一直用到按钮上沿，一眼能读完的多半就在这里读完
             block(
                 hdc,
                 f.para,
@@ -419,25 +526,11 @@ unsafe fn paint(hwnd: HWND) {
                 &s.content,
                 RECT {
                     left: pad,
-                    top: px(dpi, 36.0),
+                    top: px(dpi, 40.0),
                     right,
-                    bottom: px(dpi, 78.0),
+                    bottom: px(dpi, BODY_BOTTOM),
                 },
                 DT_LEFT | DT_WORDBREAK | DT_END_ELLIPSIS,
-            );
-
-            line(
-                hdc,
-                f.body,
-                pal.muted,
-                &s.time,
-                RECT {
-                    left: pad,
-                    top: px(dpi, 88.0),
-                    right,
-                    bottom: px(dpi, 104.0),
-                },
-                DT_LEFT,
             );
         }
     }
@@ -501,10 +594,12 @@ unsafe fn draw_button(dis: &DRAWITEMSTRUCT) -> LRESULT {
         } else {
             pal.accent
         };
+        // 悬停必须"看得出来"：在强调色上再压 8% 明度几乎无法察觉，
+        // 所以改成向卡片底色方向提亮 16%，边界与常态有肉眼可辨的落差。
         let base = if pressed {
-            shade(base, 0.82)
+            shade(base, 0.84)
         } else if hovered {
-            shade(base, 0.92)
+            blend(base, pal.bg, 0.16)
         } else {
             base
         };
@@ -609,6 +704,134 @@ unsafe fn refresh_button(s: &CardState, ctl: usize) {
     if hwnd != 0 {
         InvalidateRect(hwnd, std::ptr::null(), 0);
     }
+}
+
+// ------------------------------------------------------------ 按钮几何（随文案变）
+
+/// 按当前文案重排两个按钮：宽度贴着字算，右边缘固定不动，关闭键跟着往左让。
+///
+/// 状态文案长度不一（`复制` / `已复制` / `复制失败`），如果一开始就按最长的那条
+/// 定宽，常态下按钮两侧会各空出 20 多像素，看起来像「框比字大一圈」。
+/// 所以常态用窄的，进入回执状态时再向左长开——右边缘不动，视觉上不跳。
+unsafe fn relayout_buttons(s: &mut CardState) {
+    let label = match s.copy_state {
+        CopyState::Idle => s.copy_label,
+        CopyState::Done => COPIED_LABEL,
+        CopyState::Failed => COPY_FAIL_LABEL,
+    };
+    let dpi = s.dpi;
+    let bh = px(dpi, BTN_H);
+    let by = s.size.y - bh - px(dpi, 14.0);
+    let pad = px(dpi, PAD);
+    let bw_copy = (text_width(s.fonts.button, label) + px(dpi, BTN_PAD_X) * 2)
+        .max(px(dpi, BTN_MIN_W));
+    let bw_close = (text_width(s.fonts.button, CLOSE_LABEL) + px(dpi, BTN_PAD_X) * 2)
+        .max(px(dpi, BTN_MIN_W));
+    let x_copy = s.size.x - pad - bw_copy;
+    let x_close = x_copy - px(dpi, BTN_GAP) - bw_close;
+
+    s.rc_copy = RECT {
+        left: x_copy,
+        top: by,
+        right: x_copy + bw_copy,
+        bottom: by + bh,
+    };
+    s.rc_close = RECT {
+        left: x_close,
+        top: by,
+        right: x_close + bw_close,
+        bottom: by + bh,
+    };
+    let flags = SWP_NOZORDER | SWP_NOACTIVATE;
+    if s.btn_copy != 0 {
+        SetWindowPos(s.btn_copy, 0, x_copy, by, bw_copy, bh, flags);
+        InvalidateRect(s.btn_copy, std::ptr::null(), 0);
+    }
+    if s.btn_close != 0 {
+        SetWindowPos(s.btn_close, 0, x_close, by, bw_close, bh, flags);
+        InvalidateRect(s.btn_close, std::ptr::null(), 0);
+    }
+}
+
+// ------------------------------------------------------- 按钮子类化（hover / 光标）
+/// 按钮原本的窗口过程：(按钮句柄, 原过程)。
+/// 只在子类化时写入一次，之后每次转发都靠它把消息还给系统按钮实现。
+static BUTTON_PROCS: Mutex<Vec<(isize, isize)>> = Mutex::new(Vec::new());
+
+/// 手型光标。系统光标用 `MAKEINTRESOURCE` 的整数形式传入。
+fn hand_cursor() -> HANDLE {
+    unsafe { LoadCursorW(0, IDC_HAND as *const u16) }
+}
+
+/// 换掉按钮的窗口过程，让按钮自己汇报悬停、并给出「可点」的光标。
+///
+/// 为什么必须子类化：鼠标一旦落到子按钮上，`WM_MOUSEMOVE` 就被按钮吃掉，
+/// 父窗口收不到，只能靠 250ms 的进度节拍兜底采样——hover 慢半拍，
+/// 光标也停在箭头。这两件事都只在按钮自己的消息里才来得及做。
+unsafe extern "system" fn button_proc(
+    hwnd: HWND,
+    msg: UINT,
+    wparam: WPARAM,
+    lparam: LPARAM,
+) -> LRESULT {
+    match msg {
+        WM_SETCURSOR => {
+            SetCursor(hand_cursor());
+            return 1;
+        }
+        WM_MOUSEMOVE => {
+            if let Some(ptr) = state_owner(hwnd) {
+                let s = &mut *ptr;
+                let id = if s.btn_copy == hwnd { ID_COPY } else { ID_CLOSE };
+                set_hover(s, Some(id));
+            }
+            // 每次移动重新登记一次「离开通知」，按钮才能及时清掉 hover
+            let mut tme = TRACKMOUSEEVENT {
+                cbSize: std::mem::size_of::<TRACKMOUSEEVENT>() as DWORD,
+                dwFlags: TME_LEAVE,
+                hwndTrack: hwnd,
+                dwHoverTime: 0,
+            };
+            TrackMouseEvent(&mut tme);
+        }
+        WM_MOUSELEAVE => {
+            if let Some(ptr) = state_owner(hwnd) {
+                set_hover(&mut *ptr, None);
+            }
+        }
+        _ => {}
+    }
+
+    let old = BUTTON_PROCS
+        .lock()
+        .unwrap_or_else(|e| e.into_inner())
+        .iter()
+        .find(|(h, _)| *h == hwnd)
+        .map(|(_, p)| *p)
+        .unwrap_or(0);
+    if old == 0 {
+        DefWindowProcW(hwnd, msg, wparam, lparam)
+    } else {
+        CallWindowProcW(old, hwnd, msg, wparam, lparam)
+    }
+}
+
+unsafe fn subclass_button(btn: HWND) {
+    if btn == 0 {
+        return;
+    }
+    let old = SetWindowLongPtrW(btn, GWLP_WNDPROC, button_proc as *const () as isize);
+    if old != 0 {
+        let mut procs = BUTTON_PROCS.lock().unwrap_or_else(|e| e.into_inner());
+        procs.retain(|(h, _)| *h != btn);
+        procs.push((btn, old));
+    }
+}
+
+/// 窗口销毁时清掉登记，避免句柄复用后转发到已失效的旧过程
+unsafe fn forget_buttons(s: &CardState) {
+    let mut procs = BUTTON_PROCS.lock().unwrap_or_else(|e| e.into_inner());
+    procs.retain(|(h, _)| *h != s.btn_copy && *h != s.btn_close);
 }
 
 unsafe fn set_hover(s: &mut CardState, next: Option<usize>) {
@@ -750,6 +973,7 @@ unsafe extern "system" fn wnd_proc(
                         store::mark_copied(rid);
                         println!("[card] 按钮复制成功 (row={rid})");
                         s.copy_state = CopyState::Done;
+                        relayout_buttons(s);
                         refresh_button(s, ID_COPY);
                         KillTimer(hwnd, TIMER_RESET);
                         // 先让「已复制」被看见，再收卡片
@@ -759,6 +983,7 @@ unsafe extern "system" fn wnd_proc(
                         // 失败必须留在屏幕上：直接关掉会让用户以为复制成功了
                         eprintln!("[card] 复制失败: {e}");
                         s.copy_state = CopyState::Failed;
+                        relayout_buttons(s);
                         refresh_button(s, ID_COPY);
                         KillTimer(hwnd, TIMER_RESET);
                         SetTimer(hwnd, TIMER_RESET, RESET_MS, std::ptr::null_mut());
@@ -779,6 +1004,7 @@ unsafe extern "system" fn wnd_proc(
                     if let Some(s) = state(hwnd) {
                         if s.copy_state == CopyState::Failed {
                             s.copy_state = CopyState::Idle;
+                            relayout_buttons(s);
                             refresh_button(s, ID_COPY);
                         }
                     }
@@ -817,6 +1043,7 @@ unsafe extern "system" fn wnd_proc(
             let ptr = GetWindowLongPtrW(hwnd, GWLP_USERDATA);
             if ptr != 0 {
                 let card = Box::from_raw(ptr as *mut CardState);
+                forget_buttons(&card);
                 for f in [
                     card.fonts.title,
                     card.fonts.code,
@@ -983,9 +1210,24 @@ fn spawn(spec: Spec) {
     };
 
     let pad = px(dpi, PAD);
-    let bw_copy = px(dpi, BTN_COPY_W);
-    let bw_close = px(dpi, BTN_CLOSE_W);
     let bh = px(dpi, BTN_H);
+    // 初始只按当次文案定宽；进入「已复制 / 复制失败」时 relayout_buttons 会向左长开
+    let (bw_copy, bw_close, time_w) = unsafe {
+        (
+            (text_width(fonts.button, spec.copy_label) + px(dpi, BTN_PAD_X) * 2)
+                .max(px(dpi, BTN_MIN_W)),
+            (text_width(fonts.button, CLOSE_LABEL) + px(dpi, BTN_PAD_X) * 2)
+                .max(px(dpi, BTN_MIN_W)),
+            text_width(fonts.body, &spec.time),
+        )
+    };
+    // 原文只留两行：超出部分在这里就裁掉并补省略号，
+    // 交给 DrawText 自己-wrap 会漏出第三行半个字（矩形高度够就画）
+    let content = if spec.kind == Kind::Code {
+        unsafe { fit_lines(fonts.body, &spec.content, w - pad * 2, 2) }
+    } else {
+        spec.content
+    };
     let by = h - bh - px(dpi, 14.0);
     let x_copy = w - pad - bw_copy;
     let x_close = x_copy - px(dpi, BTN_GAP) - bw_close;
@@ -1007,7 +1249,7 @@ fn spawn(spec: Spec) {
         title: spec.title,
         code: spec.code,
         time: spec.time,
-        content: spec.content,
+        content,
         copy_text: spec.copy_text,
         row_id: spec.row_id,
         dpi,
@@ -1019,6 +1261,7 @@ fn spawn(spec: Spec) {
         btn_close: 0,
         rc_copy,
         rc_close,
+        time_w,
         size: POINT { x: w, y: h },
         origin: POINT { x, y },
         tracking: false,
@@ -1078,6 +1321,8 @@ fn spawn(spec: Spec) {
             s.btn_close = btn_close;
             s.btn_copy = btn_copy;
         }
+        subclass_button(btn_copy);
+        subclass_button(btn_close);
 
         ShowWindow(hwnd, SW_SHOWNOACTIVATE);
         SetWindowPos(hwnd, HWND_TOPMOST, x, y, w, h, SWP_NOACTIVATE);

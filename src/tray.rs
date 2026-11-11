@@ -53,7 +53,7 @@ fn add_tray_icon(hwnd: HWND) {
     data.cbSize = std::mem::size_of::<NOTIFYICONDATAW>() as DWORD;
     data.hWnd = hwnd;
     data.uID = win::TRAY_ICON_ID;
-    data.uFlags = NIF_MESSAGE | NIF_ICON | NIF_TIP;
+    data.uFlags = NIF_MESSAGE | NIF_ICON | NIF_TIP | NIF_SHOWTIP;
     data.uCallbackMessage = event::WM_APP_TRAY;
     data.hIcon = win::tray_icon();
     let tip = wide(config::APP_DISPLAY_NAME);
@@ -76,12 +76,15 @@ fn add_tray_icon(hwnd: HWND) {
 /// 只在创建图标和弹出菜单时调用：状态是"打开菜单那一刻"的快照即可，
 /// 不需要常驻定时器，空闲 CPU 保持 0。
 fn update_tooltip(hwnd: HWND) {
-    let text = format!("{} — {}", config::APP_DISPLAY_NAME, status_text());
+    // 悬停提示以应用名开头：用户第一眼要确认"这是哪个程序"，
+    // 状态是第二层信息。两者用「·」分开，长度控制在不会被 Shell 截断的范围。
+    let text = format!("{} · {}", config::APP_DISPLAY_NAME, status_text());
     let mut data: NOTIFYICONDATAW = unsafe { std::mem::zeroed() };
     data.cbSize = std::mem::size_of::<NOTIFYICONDATAW>() as DWORD;
     data.hWnd = hwnd;
     data.uID = win::TRAY_ICON_ID;
-    data.uFlags = NIF_TIP;
+    data.uFlags = NIF_TIP | NIF_SHOWTIP;
+    data.uVersion = NOTIFYICON_VERSION_4;
     // szTip 含结尾 NUL 共 128 个宽字符，超出被 Shell 截断，这里主动裁齐
     for (i, unit) in wide(&text).iter().take(127).enumerate() {
         data.szTip[i] = *unit;

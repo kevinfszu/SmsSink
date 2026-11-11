@@ -56,6 +56,13 @@ pub struct RECT {
 }
 
 #[repr(C)]
+#[derive(Clone, Copy, Default)]
+pub struct SIZE {
+    pub cx: i32,
+    pub cy: i32,
+}
+
+#[repr(C)]
 pub struct MSG {
     pub hwnd: HWND,
     pub message: UINT,
@@ -165,6 +172,8 @@ pub const WM_APP: UINT = 0x8000;
 pub const WM_DESTROY: UINT = 0x0002;
 pub const WM_PAINT: UINT = 0x000F;
 pub const WM_CLOSE: UINT = 0x0010;
+/// 光标进入窗口时问一次「该用哪个光标」，子控件也走这条消息
+pub const WM_SETCURSOR: UINT = 0x0020;
 pub const WM_COMMAND: UINT = 0x0111;
 pub const WM_DRAWITEM: UINT = 0x002B;
 pub const WM_TIMER: UINT = 0x0113;
@@ -188,8 +197,11 @@ pub const WS_EX_LAYERED: DWORD = 0x0008_0000;
 pub const HWND_MESSAGE: HWND = -3;
 pub const HWND_TOPMOST: HWND = -1;
 pub const SWP_NOACTIVATE: UINT = 0x0010;
+pub const SWP_NOZORDER: UINT = 0x0004;
 pub const SW_SHOWNOACTIVATE: i32 = 4;
 pub const GWLP_USERDATA: i32 = -21;
+/// 窗口过程本身：SetWindowLongPtr 换掉它即可子类化
+pub const GWLP_WNDPROC: i32 = -4;
 
 pub const NIM_ADD: DWORD = 0;
 pub const NIM_DELETE: DWORD = 2;
@@ -197,6 +209,10 @@ pub const NIM_SETVERSION: DWORD = 4;
 pub const NIF_MESSAGE: UINT = 0x01;
 pub const NIF_ICON: UINT = 0x02;
 pub const NIF_TIP: UINT = 0x04;
+/// 声明 `szTip` 是「普通悬停提示」。
+/// 用了 `NOTIFYICON_VERSION_4` 却不带这个标志时，Shell 不会显示标准 tooltip
+/// ——表现为鼠标停在托盘图标上什么都不出现。
+pub const NIF_SHOWTIP: UINT = 0x80;
 /// 气泡通知（托盘图标上弹出的提示条）
 pub const NIF_INFO: UINT = 0x10;
 pub const NIIF_INFO: DWORD = 0x1;
@@ -229,11 +245,14 @@ pub const TPM_RIGHTALIGN: UINT = 0x0008;
 
 pub const IDI_APPLICATION: usize = 32512;
 pub const IDC_ARROW: usize = 32512;
+/// 手型光标：悬停在按钮上时给「这里可以点」的反馈
+pub const IDC_HAND: usize = 32649;
 pub const SPI_GETWORKAREA: UINT = 0x0030;
 pub const SM_CXSCREEN: i32 = 0;
 
 pub const DT_LEFT: UINT = 0x0000;
 pub const DT_CENTER: UINT = 0x0001;
+pub const DT_RIGHT: UINT = 0x0002;
 pub const DT_VCENTER: UINT = 0x0004;
 pub const DT_SINGLELINE: UINT = 0x0020;
 pub const DT_WORD_ELLIPSIS: UINT = 0x0004_0000;
@@ -325,6 +344,13 @@ extern "system" {
     ) -> BOOL;
     pub fn SetWindowLongPtrW(hwnd: HWND, index: i32, value: isize) -> isize;
     pub fn GetWindowLongPtrW(hwnd: HWND, index: i32) -> isize;
+    pub fn CallWindowProcW(
+        prev: isize,
+        hwnd: HWND,
+        msg: UINT,
+        wparam: WPARAM,
+        lparam: LPARAM,
+    ) -> LRESULT;
     pub fn GetClientRect(hwnd: HWND, rect: *mut RECT) -> BOOL;
     pub fn GetParent(hwnd: HWND) -> HWND;
     pub fn FindWindowW(class: *const u16, title: *const u16) -> HWND;
@@ -376,7 +402,7 @@ extern "system" {
     pub fn CloseClipboard() -> BOOL;
     pub fn MessageBoxW(hwnd: HWND, text: *const u16, caption: *const u16, flags: UINT) -> i32;
     pub fn TrackMouseEvent(event: *mut TRACKMOUSEEVENT) -> BOOL;
-    pub fn SetCursor(pos: *mut POINT) -> BOOL;
+    pub fn SetCursor(cursor: HANDLE) -> HANDLE;
     pub fn InvalidateRect(hwnd: HWND, rect: *const RECT, erase: BOOL) -> BOOL;
     pub fn UpdateWindow(hwnd: HWND) -> BOOL;
 }
@@ -415,6 +441,7 @@ extern "system" {
     pub fn SetTextCharacterExtra(hdc: HDC, extra: i32) -> i32;
     pub fn SetTextColor(hdc: HDC, color: COLORREF) -> COLORREF;
     pub fn SelectObject(hdc: HDC, obj: HGDIOBJ) -> HGDIOBJ;
+    pub fn GetTextExtentPoint32W(hdc: HDC, text: *const u16, len: i32, size: *mut SIZE) -> BOOL;
     pub fn DeleteObject(obj: HGDIOBJ) -> BOOL;
     pub fn SetDCBrushColor(hdc: HDC, color: COLORREF) -> COLORREF;
     pub fn SetDCPenColor(hdc: HDC, color: COLORREF) -> COLORREF;
