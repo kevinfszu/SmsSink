@@ -42,6 +42,9 @@
   .badges{margin-top:14px}
   .badge{display:inline-block;font-size:12px;padding:2px 10px;border-radius:99px;
     background:var(--panel);border:1px solid var(--line);color:var(--ink-2);margin:0 3px}
+  .badge-safe{background:var(--green-bg);border:1px solid rgba(21,128,61,.38);
+    color:var(--green);font-weight:600;padding:3px 13px;font-size:12.5px}
+  .badge-safe svg{vertical-align:-2px;margin-right:5px}
 
   /* ===== 分部标题 ===== */
   .part{margin:60px 0 18px;display:flex;align-items:center;gap:14px}
@@ -63,6 +66,10 @@
   .flow .f b{display:block;color:var(--blue);font-size:13px;margin-bottom:2px}
   .flow .f span{font-size:12.5px;color:var(--ink-2)}
   .flow .a{align-self:center;color:var(--ink-3);font-size:18px;flex:0 0 auto}
+  .flow .f.safe{background:var(--green-bg);box-shadow:inset 0 0 0 1.5px rgba(21,128,61,.42)}
+  .flow .f.safe b{color:var(--green)}
+  .flow .f.safe span{color:rgba(21,128,61,.92);font-weight:600}
+  .flow .f.safe span svg{vertical-align:-2px;margin-right:4px}
   .checklist{list-style:none;margin-top:6px}
   .checklist li{padding:4px 0;color:var(--ink-2)}
   .checklist li::before{content:"✓";color:var(--green);font-weight:700;margin-right:10px}
@@ -160,7 +167,7 @@
     <p>让手机短信验证码自动出现在电脑屏幕上 · 点一下就能复制</p>
     <div class="badges">
       <span class="badge">Windows 10 / 11</span><span class="badge">安卓手机</span>
-      <span class="badge">全程本地传输 · 不经过第三方服务器</span><span class="badge">约 10 分钟配好</span>
+      <span class="badge badge-safe"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 11.5 11.5 14 15.5 9.5"/></svg>全程本地传输 · 不经过第三方服务器</span><span class="badge">约 10 分钟配好</span>
     </div>
   </header>
 
@@ -170,7 +177,7 @@
     <div class="flow">
       <div class="f"><b>① 手机收到短信</b><span>SmsForwarder 检测到验证码</span></div>
       <div class="a">→</div>
-      <div class="f"><b>② 通过 WiFi 发给电脑</b><span>局域网直连，不经过云端</span></div>
+      <div class="f safe"><b>② 通过 WiFi 发给电脑</b><span><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>局域网直连，不经过云端</span></div>
       <div class="a">→</div>
       <div class="f"><b>③ 电脑右下角弹卡片</b><span>点「复制」直接粘贴</span></div>
     </div>
