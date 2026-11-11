@@ -395,8 +395,14 @@ code{font-family:ui-monospace,"Cascadia Mono",Consolas,monospace;font-size:.9em;
         <div class="field"><label>监听地址</label><input id="s_listen" type="text" disabled></div>
         <div class="field"><label>端口<span class="badge">需重启</span></label><input id="s_port" type="number"></div>
         <div class="field"><label>Webhook 路径<span class="badge">需重启</span></label><input id="s_hook_path" type="text"></div>
-        <div class="field"><label>加签 Secret</label><input id="s_secret" type="text" placeholder="与手机端 Webhook 通道一致">
-          <div class="hint">留空表示关闭加签校验。</div>
+        <div class="field"><label>加签 Secret</label><input id="s_secret" type="text" placeholder="与手机端 Webhook 通道一致" autocomplete="off">
+          <div class="hint">留空表示不修改；与手机端 SmsForwarder 保持一致，保存后立即生效。</div>
+          <div class="row" id="secretCur" hidden style="gap:8px;margin-top:8px;align-items:center">
+            <span class="code mono" id="secretMasked" style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></span>
+            <button class="btn sm" id="btnSecretShow">显示</button>
+            <button class="btn sm" id="btnSecretCopy">复制</button>
+            <button class="btn sm danger" id="btnSecretClear">关闭加签</button>
+          </div>
         </div>
       </div>
     </div>
@@ -666,7 +672,11 @@ async function loadSettings(){
   $('s_card_seconds').value=s.card_seconds; $('s_toast_limit').value=s.toast_limit;
   $('s_retention_days').value=s.retention_days; $('s_mask_content').checked=s.mask_content;
   $('s_keep_unmatched').checked=s.keep_unmatched; $('s_autostart').checked=s.autostart;
-  $('s_secret').placeholder = s.secret_set ? '已配置（留空表示不修改）' : '与手机端 Webhook 通道一致';
+  $('s_secret').value='';
+  $('s_secret').placeholder = s.secret_set ? '已配置，下方可查看 · 留空表示不修改' : '与手机端 Webhook 通道一致';
+  secretShown = false; $('btnSecretShow').textContent = '显示';
+  $('secretCur').hidden = !s.secret_set;
+  $('secretMasked').textContent = s.secret_masked || '';
   // 网卡热插拔（插网线、连 VPN）后再次进设置页就能拿到新候选；原来的选择还有效就留着
   IPS = s.local_ips || []; if(ipPick >= IPS.length) ipPick = 0; renderHook();
 }
@@ -683,6 +693,27 @@ $('btnSettingsSave').onclick = async ()=>{
 };
 $('btnReload').onclick = async ()=>{ try{const d=await api('/api/reload',{method:'POST',body:'{}'});tip(d.msg);await loadSettings()}catch(e){tip(e.message)} };
 $('btnTestNotify').onclick = async ()=>{ try{const d=await api('/api/test-notify',{method:'POST',body:'{}'});tip(d.msg)}catch(e){tip(e.message)} };
+/* Secret：默认遮掩，按需显示/复制；「关闭加签」显式提交空值（留空输入框永远只代表不修改） */
+let secretShown=false;
+$('btnSecretShow').onclick = async ()=>{
+  if(secretShown){ secretShown=false; $('btnSecretShow').textContent='显示';
+    $('secretMasked').textContent=STATE.secret_masked||''; return; }
+  try{ const d=await api('/api/secret'); secretShown=true; $('btnSecretShow').textContent='隐藏';
+    $('secretMasked').textContent=d.secret||''; }catch(e){ tip(e.message) }
+};
+$('btnSecretCopy').onclick = async ()=>{
+  try{ const d=await api('/api/secret'); const v=d.secret||'';
+    try{ await navigator.clipboard.writeText(v); }
+    catch(_){ const t=document.createElement('textarea'); t.value=v;
+      document.body.appendChild(t); t.select(); document.execCommand('copy'); t.remove(); }
+    tip('Secret 已复制，粘贴到手机端 Secret 字段'); }
+  catch(e){ tip('复制失败：'+e.message) }
+};
+$('btnSecretClear').onclick = async ()=>{
+  if(!confirm('确定关闭加签校验？关闭后局域网内任何设备都能伪造验证码推送。')) return;
+  try{ const a=await api('/api/settings',{method:'POST',body:JSON.stringify({secret:''})});
+    tip('已关闭加签校验'); await loadSettings(); }catch(e){ tip('操作失败：'+e.message) }
+};
 $('btnCopyHook').onclick = async ()=>{
   const v = $('hookUrl').value;
   try{ await navigator.clipboard.writeText(v); tip('已复制 Webhook 地址'); }

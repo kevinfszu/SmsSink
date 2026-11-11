@@ -37,6 +37,7 @@ pub fn route(method: &str, path: &str, query: &str, body: &str, token_ok: bool) 
 
     match (method, path) {
         ("GET", "/api/state") => state(),
+        ("GET", "/api/secret") => get_secret(),
         ("GET", "/api/rules") => get_rules(),
         ("POST", "/api/rules") => put_rules(body),
         ("POST", "/api/rules/test") => test_rule(body),
@@ -91,6 +92,7 @@ fn state() -> Resp {
             "hook_path": cfg.hook_path,
             "local_ips": local_ips,
             "secret_set": !cfg.secret.is_empty(),
+            "secret_masked": mask_secret(&cfg.secret),
             "autostart": win::auto_start_enabled(),
             "rule_count": cfg.rules.len(),
             "card_seconds": cfg.card_seconds,
@@ -102,6 +104,29 @@ fn state() -> Resp {
         })
         .to_string(),
     )
+}
+
+/// secret 只做遮掩展示（首 4 + 尾 4），防止旁人瞄屏；完整值按需经 /api/secret 取。
+fn mask_secret(s: &str) -> String {
+    if s.is_empty() {
+        return String::new();
+    }
+    let n = s.chars().count();
+    if n <= 8 {
+        return "••••••".into();
+    }
+    let head: String = s.chars().take(4).collect();
+    let tail: String = s.chars().skip(n - 4).collect();
+    format!("{head}••••••{tail}")
+}
+
+fn get_secret() -> Resp {
+    let cfg = app::get()
+        .cfg
+        .read()
+        .unwrap_or_else(|e| e.into_inner())
+        .clone();
+    Resp::json(200, json!({"secret": cfg.secret}).to_string())
 }
 
 fn get_rules() -> Resp {
