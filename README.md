@@ -6,6 +6,8 @@ Windows 11 上被动接收 [SmsForwarder](https://github.com/pppscn/SmsForwarder
 
 ## 快速开始
 
+> 📖 **新手用户**：请看图文教程 [docs/tutorial.html](docs/tutorial.html)（单文件、图片内嵌，可直接发给朋友或在浏览器打开），10 分钟完成手机↔电脑全链路配置。
+
 ```powershell
 cargo build --release
 .\target\release\SmsSink.exe
