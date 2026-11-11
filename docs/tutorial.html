@@ -82,6 +82,10 @@
   .vs-old{background:var(--amber-bg);border-radius:10px;padding:13px 18px 9px;margin-top:10px}
   .vs-tag{display:flex;align-items:center;font-size:12px;font-weight:700;
     letter-spacing:.5px;margin-bottom:5px}
+  .vs-tag .obj{flex:0 0 auto;color:#fff;border-radius:5px;padding:1.5px 10px;
+    margin-right:9px;font-size:12px;letter-spacing:1px}
+  .vs-old .obj{background:var(--amber)}
+  .vs-new .obj{background:var(--green)}
   .vs-old .vs-tag{color:var(--amber)}
   .vs-old ul{list-style:none}
   .vs-old li{display:flex;align-items:flex-start;gap:8px;padding:6px 0;font-size:13.5px;
@@ -222,7 +226,7 @@
     <div class="vs">
       <div class="vs-start">共同的起点：在电脑端的网站<b>点击发送短信</b> —— 接下来怎么拿到验证码，差距就在这里</div>
       <div class="vs-old">
-        <div class="vs-tag">传统方式 · 起点与终点之间，全靠人肉搬运<span class="st">中间多 3～9 步</span></div>
+        <div class="vs-tag"><span class="obj">传统方式</span>起点与终点之间，全靠人肉搬运</div>
         <ul>
           <li><b>微信中转</b>拿起手机解锁，查看、复制短信，打开微信，粘贴、发送到电脑微信，电脑端切换到微信，复制验证码，切回到网站，粘贴验证码<span class="st">9 步</span></li>
           <li><b>背诵手输</b>拿起手机解锁，查看、背诵验证码，手工逐个数字输入验证码<span class="st">4 步</span></li>
@@ -230,7 +234,7 @@
         </ul>
       </div>
       <div class="vs-new">
-        <div class="vs-tag">现在 · SmsSink · 起点与终点之间，一步中转都没有<span class="st">0 步中转</span></div>
+        <div class="vs-tag"><span class="obj">SmsSink 方式</span>起点与终点之间，一步中转都没有</div>
         <p>无需打开手机查看，无需打开微信等即时通讯工具接收验证码，也无需经过第三方服务器同步验证码——全程只在电脑端：</p>
         <ul>
           <li><b>「发送 → 复制 → 粘贴」全在电脑端完成</b>，一气呵成。</li>
