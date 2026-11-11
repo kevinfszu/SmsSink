@@ -1,6 +1,6 @@
 [package]
 name = "sms-sink-pc"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2021"
 description = "SMS 接码器 · PC 版 — 被动接收 SmsForwarder 推送，按规则提取并通知"
 
@@ -15,6 +15,9 @@ regex = "1"
 hmac = "0.12"
 sha2 = "0.10"
 base64 = "0.22"
+rusqlite = { version = "0.32", features = ["bundled"] }
+# 仅用于 WinRT Toast 通知；其余 Win32 调用均为手写 FFI，不引入额外依赖
+windows = { version = "0.52", features = ["UI_Notifications", "Data_Xml_Dom", "Foundation"] }
 
 [profile.release]
 opt-level = "s"

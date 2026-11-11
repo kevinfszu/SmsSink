@@ -1,13 +1,18 @@
 use serde::{Deserialize, Serialize};
+use sha2::{Digest, Sha256};
 use std::fs;
 use std::path::PathBuf;
+use std::sync::OnceLock;
 
 pub const APP_DISPLAY_NAME: &str = "SMS 接码器 · PC 版";
 pub const APP_ID: &str = "SmsSink";
 pub const AUMID: &str = "SmsSink.Desktop";
+pub const SINGLE_INSTANCE_MUTEX: &str = "SmsSink.SingleInstance.v1";
 pub const DEFAULT_PORT: u16 = 8787;
 pub const DEFAULT_HOOK_PATH: &str = "/hook";
 pub const SUCCESS_MARK: &str = "success";
+
+static ACTIVE_PATH: OnceLock<PathBuf> = OnceLock::new();
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, Default, PartialEq, Eq)]
 #[serde(rename_all = "lowercase")]
@@ -16,6 +21,16 @@ pub enum NotifyMode {
     Toast,
     Card,
     Silent,
+}
+
+impl NotifyMode {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            NotifyMode::Toast => "toast",
+            NotifyMode::Card => "card",
+            NotifyMode::Silent => "silent",
+        }
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -73,6 +88,20 @@ pub struct Config {
     pub timestamp_tolerance_secs: i64,
     pub rules: Vec<Rule>,
     pub keep_unmatched: bool,
+    /// 管理台访问令牌；首次启动自动生成并写回配置
+    pub admin_token: String,
+    /// 自绘卡片停留秒数
+    pub card_seconds: u64,
+    /// 通知中心最多保留多少条 Toast（超出移除最旧）
+    pub toast_limit: usize,
+    /// 消息保留天数，0 表示永久保留
+    pub retention_days: u32,
+    /// 落盘时把原文中的数字打码
+    pub mask_content: bool,
+    /// SQLite 文件路径；留空则用 %APPDATA%\SmsSink\data.db
+    pub db_path: String,
+    /// 管理台「最近记录」单次查询上限
+    pub history_limit: usize,
 }
 
 impl Default for Config {
@@ -85,6 +114,13 @@ impl Default for Config {
             timestamp_tolerance_secs: 300,
             rules: vec![Rule::default()],
             keep_unmatched: false,
+            admin_token: String::new(),
+            card_seconds: 12,
+            toast_limit: 30,
+            retention_days: 180,
+            mask_content: false,
+            db_path: String::new(),
+            history_limit: 200,
         }
     }
 }
@@ -104,22 +140,50 @@ fn candidates() -> Vec<PathBuf> {
 }
 
 pub fn config_path() -> PathBuf {
-    candidates()
-        .into_iter()
-        .next()
-        .unwrap_or_else(|| PathBuf::from("config.json"))
+    ACTIVE_PATH
+        .get()
+        .cloned()
+        .unwrap_or_else(|| candidates().into_iter().next().unwrap_or_else(|| PathBuf::from("config.json")))
+}
+
+pub fn save(cfg: &Config) -> std::io::Result<()> {
+    let path = config_path();
+    if let Some(dir) = path.parent() {
+        fs::create_dir_all(dir)?;
+    }
+    fs::write(&path, serde_json::to_string_pretty(cfg).unwrap_or_default())
+}
+
+fn random_token() -> String {
+    let mut h = Sha256::new();
+    h.update(
+        std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap_or_default()
+            .as_nanos()
+            .to_le_bytes(),
+    );
+    h.update(std::process::id().to_le_bytes());
+    h.update(format!("{:?}", std::thread::current().id()).as_bytes());
+    h.finalize()[..16]
+        .iter()
+        .map(|b| format!("{b:02x}"))
+        .collect()
 }
 
 pub fn load() -> Config {
+    let mut cfg = None;
     for path in candidates() {
         if !path.exists() {
             continue;
         }
         match fs::read_to_string(&path) {
             Ok(text) => match serde_json::from_str::<Config>(&text) {
-                Ok(cfg) => {
+                Ok(c) => {
                     println!("[config] 已加载 {}", path.display());
-                    return cfg;
+                    let _ = ACTIVE_PATH.set(path);
+                    cfg = Some(c);
+                    break;
                 }
                 Err(e) => eprintln!("[config] {} 解析失败: {e}", path.display()),
             },
@@ -127,19 +191,26 @@ pub fn load() -> Config {
         }
     }
 
-    let default = Config::default();
-    if let Ok(text) = serde_json::to_string_pretty(&default) {
-        for path in candidates() {
-            if let Some(dir) = path.parent() {
-                if fs::create_dir_all(dir).is_err() {
-                    continue;
-                }
-            }
-            if fs::write(&path, &text).is_ok() {
-                println!("[config] 已生成默认配置 {}", path.display());
-                break;
-            }
-        }
+    let mut cfg = cfg.unwrap_or_default();
+    if ACTIVE_PATH.get().is_none() {
+        let path = candidates().into_iter().next().unwrap_or_else(|| PathBuf::from("config.json"));
+        let _ = ACTIVE_PATH.set(path);
     }
-    default
+    if cfg.admin_token.is_empty() {
+        cfg.admin_token = random_token();
+        println!("[config] 已生成管理台访问 token: {}", cfg.admin_token);
+    }
+    let _ = save(&cfg);
+    cfg
+}
+
+pub fn data_db_path(cfg: &Config) -> PathBuf {
+    if !cfg.db_path.trim().is_empty() {
+        return PathBuf::from(&cfg.db_path);
+    }
+    if let Ok(appdata) = std::env::var("APPDATA") {
+        PathBuf::from(appdata).join(APP_ID).join("data.db")
+    } else {
+        PathBuf::from("data.db")
+    }
 }

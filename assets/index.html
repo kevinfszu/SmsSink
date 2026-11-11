@@ -3,29 +3,414 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>SMS 接码器 · PC 版</title>
+<title>SMS 接码器 · PC 版 · 管理台</title>
 <style>
-body{font-family:"Segoe UI","Microsoft YaHei",sans-serif;background:#f7f7f5;color:#222;margin:0;padding:40px}
-main{max-width:720px;margin:0 auto;background:#fff;border:1px solid #e5e5e0;border-radius:12px;padding:28px}
-h1{font-size:20px;font-weight:500;margin:0 0 6px}
-p{color:#666;font-size:14px;line-height:1.7}
-code{background:#f1f1ec;padding:2px 6px;border-radius:4px;font-size:13px}
-.badge{display:inline-block;background:#e1f5ee;color:#085041;border-radius:6px;padding:4px 10px;font-size:13px}
+:root{
+  --bg:#f5f6f8; --panel:#fff; --line:#e6e8ec; --text:#1c2026; --muted:#6b7280;
+  --accent:#2563eb; --accent-soft:#eaf1ff; --code:#0f766e; --code-bg:#ecfdf5;
+  --danger:#dc2626; --shadow:0 1px 2px rgba(16,24,40,.04),0 8px 24px rgba(16,24,40,.06);
+}
+@media (prefers-color-scheme:dark){
+  :root{--bg:#15171b;--panel:#1d2026;--line:#2d313a;--text:#e8eaee;--muted:#969ca8;
+  --accent:#6d9dff;--accent-soft:#24304a;--code:#5eead4;--code-bg:#17312f;
+  --danger:#f87171;--shadow:0 1px 2px rgba(0,0,0,.3),0 8px 24px rgba(0,0,0,.25)}
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font:14px/1.6 "Segoe UI","Microsoft YaHei",system-ui,sans-serif}
+a{color:var(--accent)}
+.wrap{max-width:1180px;margin:0 auto;padding:28px 24px 60px}
+header{display:flex;align-items:center;gap:14px;margin-bottom:22px;flex-wrap:wrap}
+.logo{width:38px;height:38px;border-radius:11px;background:var(--accent);color:#fff;display:grid;place-items:center;font-weight:700;font-size:17px;flex:none}
+h1{font-size:19px;font-weight:600;margin:0;letter-spacing:.2px}
+.sub{color:var(--muted);font-size:12px;margin-top:1px}
+.spacer{flex:1}
+.pill{display:inline-flex;align-items:center;gap:6px;background:var(--panel);border:1px solid var(--line);border-radius:999px;padding:6px 12px;font-size:12px;color:var(--muted)}
+.dot{width:7px;height:7px;border-radius:50%;background:#16a34a}
+nav{display:flex;gap:4px;background:var(--panel);border:1px solid var(--line);padding:4px;border-radius:11px;margin-bottom:20px;box-shadow:var(--shadow)}
+nav button{border:0;background:transparent;color:var(--muted);padding:8px 16px;border-radius:8px;cursor:pointer;font:inherit;font-weight:500}
+nav button.on{background:var(--accent-soft);color:var(--accent)}
+section{display:none} section.on{display:block}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:13px;box-shadow:var(--shadow);padding:20px;margin-bottom:16px}
+.panel h2{font-size:15px;margin:0 0 14px;font-weight:600}
+.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+input,select,textarea{background:var(--bg);color:var(--text);border:1px solid var(--line);border-radius:8px;padding:8px 11px;font:inherit;outline:none;min-width:0}
+input:focus,select:focus,textarea:focus{border-color:var(--accent)}
+input[type=text],input[type=number],textarea{width:100%}
+textarea{resize:vertical;min-height:74px;font-family:ui-monospace,Consolas,monospace;font-size:13px}
+label{display:block;font-size:12px;color:var(--muted);margin-bottom:5px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:14px}
+.btn{border:1px solid var(--line);background:var(--panel);color:var(--text);padding:8px 14px;border-radius:8px;cursor:pointer;font:inherit;font-weight:500;white-space:nowrap}
+.btn:hover{border-color:var(--accent);color:var(--accent)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+.btn.primary:hover{opacity:.9;color:#fff}
+.btn.sm{padding:5px 10px;font-size:12px}
+.btn.danger{color:var(--danger)}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{text-align:left;font-weight:500;color:var(--muted);font-size:12px;padding:9px 10px;border-bottom:1px solid var(--line);white-space:nowrap}
+td{padding:10px;border-bottom:1px solid var(--line);vertical-align:middle}
+tr:last-child td{border-bottom:0}
+tbody tr:hover{background:var(--bg)}
+.code{font:600 17px/1.3 ui-monospace,Consolas,monospace;color:var(--code);background:var(--code-bg);padding:4px 10px;border-radius:7px;display:inline-block;letter-spacing:1px}
+.muted{color:var(--muted)}
+.tag{display:inline-block;padding:2px 8px;border-radius:6px;background:var(--accent-soft);color:var(--accent);font-size:12px}
+.nowrap{white-space:nowrap}
+.empty{text-align:center;color:var(--muted);padding:40px 0}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:18px}
+.stat{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px 18px;box-shadow:var(--shadow)}
+.stat b{display:block;font-size:26px;font-weight:600;letter-spacing:-.5px;margin-top:4px}
+.stat span{color:var(--muted);font-size:12px}
+.chart{width:100%;height:180px;overflow:visible}
+.bar{fill:var(--accent);opacity:.85}
+.bar:hover{opacity:1}
+.axis{font-size:10px;fill:var(--muted)}
+.rules-layout{display:grid;grid-template-columns:260px 1fr;gap:16px}
+@media(max-width:800px){.rules-layout{grid-template-columns:1fr}}
+.rule-list{border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.rule-item{padding:11px 13px;border-bottom:1px solid var(--line);cursor:pointer;display:flex;justify-content:space-between;gap:8px;align-items:center}
+.rule-item:last-child{border-bottom:0}
+.rule-item:hover{background:var(--bg)}
+.rule-item.on{background:var(--accent-soft);color:var(--accent)}
+.rule-item small{color:var(--muted);display:block;font-size:11px}
+.pre{margin-top:12px;padding:12px;border-radius:9px;background:var(--bg);border:1px solid var(--line);font:13px/1.7 ui-monospace,Consolas,monospace;white-space:pre-wrap;word-break:break-all}
+.ok{color:var(--code)} .bad{color:var(--danger)}
+#gate{position:fixed;inset:0;background:var(--bg);display:none;place-items:center;z-index:9}
+#gate .box{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:28px;box-shadow:var(--shadow);width:min(420px,92vw)}
+#toast{position:fixed;right:22px;bottom:22px;background:var(--panel);border:1px solid var(--line);border-left:3px solid var(--accent);border-radius:10px;padding:12px 18px;box-shadow:var(--shadow);opacity:0;transform:translateY(8px);transition:.2s;pointer-events:none;z-index:20}
+#toast.show{opacity:1;transform:translateY(0)}
+.field{margin-bottom:13px}
+.check{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text)}
+.check input{width:auto}
+.hint{font-size:12px;color:var(--muted);margin-top:5px}
 </style>
 </head>
 <body>
-<main>
-<h1>SMS 接码器 · PC 版</h1>
-<p>被动接收端已就绪。手机端 SmsForwarder 的 Webhook 应指向 <code>http://电脑局域网IP:8787/hook</code>。</p>
-<p><span class="badge" id="status">正在查询状态…</span></p>
-<p>规则编辑、最近验证码面板与长期统计分析将在后续版本接入此页面。</p>
-</main>
+<div id="gate"><div class="box">
+  <h2 style="margin:0 0 8px">输入访问令牌</h2>
+  <p class="muted" style="margin:0 0 16px">管理台只允许本机访问。令牌在程序启动日志或 config.json 的 <code>admin_token</code> 字段中，也可以直接从托盘菜单「打开管理台」进入。</p>
+  <input id="gateToken" type="text" placeholder="32 位十六进制令牌" autocomplete="off">
+  <div style="margin-top:14px"><button class="btn primary" id="gateOk">进入</button></div>
+  <p id="gateErr" class="bad" style="min-height:20px;font-size:12px"></p>
+</div></div>
+
+<div class="wrap">
+  <header>
+    <div class="logo">码</div>
+    <div><h1>SMS 接码器 · PC 版</h1><div class="sub" id="subTitle">被动接收 SmsForwarder 推送 · 按规则提取与通知</div></div>
+    <div class="spacer"></div>
+    <span class="pill"><i class="dot"></i><span id="statusText">连接中…</span></span>
+  </header>
+
+  <nav>
+    <button data-tab="recent" class="on">最近记录</button>
+    <button data-tab="rules">规则管理</button>
+    <button data-tab="stats">统计分析</button>
+    <button data-tab="settings">设置</button>
+  </nav>
+
+  <!-- 最近记录 -->
+  <section id="recent" class="on">
+    <div class="panel">
+      <div class="row" style="margin-bottom:14px">
+        <input id="fSender" type="text" placeholder="来源号码" style="width:150px">
+        <input id="fRule" type="text" placeholder="规则名" style="width:160px">
+        <input id="fQuery" type="text" placeholder="搜索原文 / 验证码" style="width:210px">
+        <button class="btn" id="btnRefresh">刷新</button>
+        <div class="spacer"></div>
+        <button class="btn" id="btnCsv">导出 CSV</button>
+      </div>
+      <table><thead><tr>
+        <th>时间</th><th>来源</th><th>提取值</th><th>命中规则</th><th>通知</th><th>状态</th><th>原文</th><th></th>
+      </tr></thead><tbody id="rows"></tbody></table>
+      <div id="rowsEmpty" class="empty" style="display:none">暂无记录。手机端推送一条短信后这里就会出现。</div>
+      <div class="row" style="margin-top:14px">
+        <button class="btn sm" id="btnPrev">上一页</button>
+        <span class="muted" id="pageInfo">第 1 页</span>
+        <button class="btn sm" id="btnNext">下一页</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- 规则管理 -->
+  <section id="rules">
+    <div class="rules-layout">
+      <div class="panel" style="align-self:start">
+        <div class="row" style="margin-bottom:12px">
+          <h2 style="margin:0;flex:1">规则（按优先级）</h2>
+          <button class="btn sm" id="btnAdd">＋</button>
+        </div>
+        <div class="rule-list" id="ruleList"></div>
+        <div class="row" style="margin-top:14px">
+          <button class="btn primary" id="btnSave" style="flex:1">保存并生效</button>
+        </div>
+        <p class="hint">保存后立即生效，无需重启。重启也不会丢失。</p>
+      </div>
+      <div>
+        <div class="panel" id="ruleForm">
+          <h2 id="formTitle">编辑规则</h2>
+          <div class="grid">
+            <div class="field"><label>规则名</label><input id="r_name" type="text"></div>
+            <div class="field"><label>优先级（大者优先）</label><input id="r_priority" type="number"></div>
+            <div class="field"><label>匹配来源（逗号分隔，留空不限）</label><input id="r_match_from" type="text" placeholder="1069xxxx, 10086"></div>
+            <div class="field"><label>通知方式</label><select id="r_notify">
+              <option value="toast">Toast（通知中心 + 复制按钮）</option>
+              <option value="card">卡片（右下角大号显示）</option>
+              <option value="silent">静默（仅入最近记录）</option>
+            </select></div>
+            <div class="field"><label>任一包含关键词（逗号分隔）</label><input id="r_keywords_any" type="text" placeholder="验证码,校验码,动态密码"></div>
+            <div class="field"><label>全部包含关键词（逗号分隔）</label><input id="r_keywords_all" type="text"></div>
+            <div class="field"><label>排除关键词（逗号分隔）</label><input id="r_exclude" type="text"></div>
+            <div class="field"><label>捕获组序号</label><input id="r_capture" type="number" min="0"></div>
+            <div class="field"><label>有效期（秒）</label><input id="r_ttl_sec" type="number"></div>
+            <div class="field"><label>复制模板</label><input id="r_copy_template" type="text" placeholder="{code}"></div>
+          </div>
+          <div class="field"><label>提取正则</label><textarea id="r_extract"></textarea>
+            <div class="hint">建议「关键词 + 上下文窗口」取 4–8 位数字，避免订单号 / 金额误命中。不要用裸 \d{6}。</div>
+          </div>
+          <div class="row">
+            <label class="check"><input id="r_enabled" type="checkbox"> 启用</label>
+            <label class="check"><input id="r_auto_copy" type="checkbox"> 收到即自动写入剪贴板</label>
+            <label class="check"><input id="r_keep_history" type="checkbox"> 保留历史</label>
+            <div class="spacer"></div>
+            <button class="btn danger sm" id="btnDelete">删除此规则</button>
+          </div>
+        </div>
+        <div class="panel">
+          <h2>样例短信试跑</h2>
+          <div class="field"><label>模拟来源</label><input id="t_from" type="text" value="10086"></div>
+          <div class="field"><label>短信原文</label><textarea id="t_content">【中国移动统一认证】您的验证码为633382，您正在使用短信验证码登录功能，该验证码仅用于身份验证，3分钟内有效，请勿泄露给他人使用。</textarea></div>
+          <button class="btn" id="btnTest">试跑当前表单</button>
+          <div class="pre" id="testOut">填入样例短信后点「试跑」。</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 统计 -->
+  <section id="stats">
+    <div class="panel">
+      <div class="row" style="margin-bottom:16px">
+        <h2 style="margin:0;flex:1">接收统计</h2>
+        <select id="statDays" style="width:130px">
+          <option value="7">最近 7 天</option><option value="30" selected>最近 30 天</option>
+          <option value="90">最近 90 天</option><option value="365">最近 1 年</option>
+        </select>
+        <button class="btn sm" id="btnStatRefresh">刷新</button>
+      </div>
+      <div class="stats" id="statCards"></div>
+      <h2 style="font-size:14px;margin:18px 0 6px">每日接收量</h2>
+      <svg class="chart" id="chart" viewBox="0 0 1000 180" preserveAspectRatio="none"></svg>
+      <div class="grid" style="margin-top:20px">
+        <div><h2 style="font-size:14px">按规则</h2><table><tbody id="byRule"></tbody></table></div>
+        <div><h2 style="font-size:14px">按来源</h2><table><tbody id="bySender"></tbody></table></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 设置 -->
+  <section id="settings">
+    <div class="panel">
+      <h2>接收端</h2>
+      <div class="grid">
+        <div class="field"><label>监听地址</label><input id="s_listen" type="text" disabled></div>
+        <div class="field"><label>端口（改后需重启）</label><input id="s_port" type="number"></div>
+        <div class="field"><label>Webhook 路径（改后需重启）</label><input id="s_hook_path" type="text"></div>
+        <div class="field"><label>加签 Secret（留空关闭校验）</label><input id="s_secret" type="text" placeholder="与手机端 Webhook 通道一致"></div>
+        <div class="field"><label>卡片停留秒数</label><input id="s_card_seconds" type="number"></div>
+        <div class="field"><label>通知中心保留上限</label><input id="s_toast_limit" type="number"></div>
+        <div class="field"><label>记录保留天数（0 = 永久）</label><input id="s_retention_days" type="number"></div>
+      </div>
+      <div class="row" style="margin-bottom:14px">
+        <label class="check"><input id="s_mask_content" type="checkbox"> 原文落盘时把数字打码</label>
+        <label class="check"><input id="s_keep_unmatched" type="checkbox"> 保留未命中规则的短信</label>
+        <label class="check"><input id="s_autostart" type="checkbox"> 开机自动启动</label>
+      </div>
+      <div class="row">
+        <button class="btn primary" id="btnSettingsSave">保存设置</button>
+        <button class="btn" id="btnReload">重载配置</button>
+        <button class="btn" id="btnTestNotify">发送测试通知</button>
+      </div>
+      <p class="hint" id="hookHint"></p>
+    </div>
+    <div class="panel">
+      <h2>手机端 SmsForwarder 配置</h2>
+      <p class="muted" style="margin:0">发送通道选「Webhook」，请求方法 POST，<code>webParams</code> 留空（使用默认 form 报文），URL 填 <span id="hookUrl" class="code" style="font-size:13px"></span>；「成功标识」填 <code>success</code>。若启用加签，Secret 需与上方一致。</p>
+    </div>
+  </section>
+</div>
+
+<div id="toast"></div>
 <script>
-fetch('/api/health').then(r=>r.json()).then(d=>{
-  document.getElementById('status').textContent = '接收端状态：' + d.status;
-}).catch(()=>{
-  document.getElementById('status').textContent = '状态查询失败';
+'use strict';
+let TOKEN = new URLSearchParams(location.search).get('token') || sessionStorage.getItem('smsSinkToken') || '';
+let RULES = [], selected = 0, page = 0, PAGE_SIZE = 50, STATE = {};
+
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const split = s => String(s || '').split(/[,，]/).map(x => x.trim()).filter(Boolean);
+const join = a => (a || []).join(', ');
+
+function tip(msg){ const t=$('toast'); t.textContent=msg; t.classList.add('show'); clearTimeout(t._h); t._h=setTimeout(()=>t.classList.remove('show'),2200); }
+async function api(path, opts={}){
+  const r = await fetch(path, Object.assign({headers:{'X-SmsSink-Token':TOKEN,'Content-Type':'application/json'}}, opts));
+  if(r.status===401){ showGate('令牌无效，请重新输入'); throw new Error('unauthorized'); }
+  if(!r.ok) throw new Error('HTTP '+r.status);
+  return r.json();
+}
+function showGate(msg){
+  $('gate').style.display='grid'; $('gateErr').textContent=msg||''; $('gateToken').value=TOKEN||'';
+}
+$('gateOk').onclick = async () => {
+  const v = $('gateToken').value.trim();
+  if(!v) return;
+  TOKEN=v; sessionStorage.setItem('smsSinkToken',v);
+  try{ await api('/api/state'); $('gate').style.display='none'; boot(); }catch(e){ $('gateErr').textContent='令牌不正确或服务未启动'; }
+};
+$('gateToken').addEventListener('keydown', e => { if(e.key==='Enter') $('gateOk').click(); });
+
+document.querySelectorAll('nav button').forEach(b => b.onclick = () => {
+  document.querySelectorAll('nav button').forEach(x=>x.classList.remove('on'));
+  document.querySelectorAll('section').forEach(x=>x.classList.remove('on'));
+  b.classList.add('on'); $(b.dataset.tab).classList.add('on');
+  if(b.dataset.tab==='stats') loadStats();
+  if(b.dataset.tab==='settings') loadSettings();
 });
+
+function hookUrl(){ return 'http://<电脑局域网IP>:'+(STATE.port||8787)+(STATE.hook_path||'/hook'); }
+
+async function boot(){
+  try{
+    STATE = await api('/api/state');
+    $('statusText').textContent = '接收端在线 · 端口 ' + STATE.port;
+    $('subTitle').textContent = 'v'+STATE.version+' · '+(STATE.secret_set?'已启用加签':'未启用加签')+' · '+STATE.rule_count+' 条规则';
+    $('hookUrl').textContent = hookUrl(); $('hookHint').textContent = '当前 Webhook 地址：'+hookUrl();
+    $('gate').style.display='none';
+    await Promise.all([loadRecent(), loadRules(), loadStats(), loadSettings()]);
+  }catch(e){ showGate('无法连接接收端：'+e.message); }
+}
+
+/* ---------- 最近记录 ---------- */
+async function loadRecent(){
+  const q = new URLSearchParams({limit:PAGE_SIZE, offset:page*PAGE_SIZE,
+    sender:$('fSender').value.trim(), rule:$('fRule').value.trim(), q:$('fQuery').value.trim()});
+  const d = await api('/api/messages?'+q);
+  const rows = d.rows || [];
+  $('rowsEmpty').style.display = rows.length ? 'none':'block';
+  $('pageInfo').textContent = '第 '+(page+1)+' 页 · 本页 '+rows.length+' 条';
+  $('rows').innerHTML = rows.map(r => `<tr>
+    <td class="nowrap muted">${esc(r.local_time)}</td>
+    <td class="nowrap">${esc(r.sender)}</td>
+    <td>${r.extracted?`<span class="code">${esc(r.extracted)}</span>`:'<span class="muted">—</span>'}</td>
+    <td>${r.rule_name?`<span class="tag">${esc(r.rule_name)}</span>`:'<span class="muted">未命中</span>'}</td>
+    <td class="nowrap muted">${esc(r.notify)}</td>
+    <td class="nowrap muted">${r.copied?'已复制':(r.auto_copy?'自动复制':'')}</td>
+    <td class="muted" style="max-width:320px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${esc(r.content)}">${esc(r.content)}</td>
+    <td class="nowrap"><button class="btn sm" data-copy="${esc(r.extracted||r.content)}" data-id="${r.id}">复制</button></td>
+  </tr>`).join('');
+  $('rows').querySelectorAll('[data-copy]').forEach(b => b.onclick = async () => {
+    try{ await api('/api/copy',{method:'POST',body:JSON.stringify({text:b.dataset.copy,id:Number(b.dataset.id)})}); b.textContent='已复制'; setTimeout(()=>b.textContent='复制',1400); }
+    catch(e){ tip('复制失败：'+e.message); }
+  });
+}
+$('btnRefresh').onclick = ()=>{page=0;loadRecent()};
+['fSender','fRule','fQuery'].forEach(id=>$(id).addEventListener('keydown',e=>{if(e.key==='Enter'){page=0;loadRecent()}}));
+$('btnPrev').onclick = ()=>{if(page>0){page--;loadRecent()}};
+$('btnNext').onclick = ()=>{page++;loadRecent()};
+$('btnCsv').onclick = async () => {
+  const q = new URLSearchParams({sender:$('fSender').value.trim(),rule:$('fRule').value.trim(),q:$('fQuery').value.trim()});
+  const r = await fetch('/api/export.csv?'+q,{headers:{'X-SmsSink-Token':TOKEN}});
+  const blob = await r.blob(), url = URL.createObjectURL(blob), a=document.createElement('a');
+  a.href=url; a.download='sms-sink-'+new Date().toISOString().slice(0,10)+'.csv'; a.click(); URL.revokeObjectURL(url); tip('CSV 已导出');
+};
+
+/* ---------- 规则 ---------- */
+const F = ['name','priority','match_from','keywords_any','keywords_all','exclude','extract','capture','notify','ttl_sec','copy_template','enabled','auto_copy','keep_history'];
+function blank(){ return {name:'新规则',enabled:true,priority:10,match_from:[],keywords_any:['验证码'],keywords_all:[],exclude:[],
+  extract:'(?:验证码|校验码|动态密码)[^\\d]{0,8}(\\d{4,8})',capture:1,notify:'toast',auto_copy:false,copy_template:'{code}',ttl_sec:180,keep_history:true}; }
+function renderRules(){
+  const sorted = RULES.map((r,i)=>({r,i})).sort((a,b)=>b.r.priority-a.r.priority);
+  $('ruleList').innerHTML = sorted.map(({r,i}) => `<div class="rule-item ${i===selected?'on':''}" data-i="${i}">
+    <div><b>${esc(r.name)}</b><small>P${r.priority} · ${esc(r.notify)} · ${r.auto_copy?'自动复制':'手动复制'}</small></div>
+    <span class="muted">${r.enabled?'✓':'○'}</span></div>`).join('') || '<div class="empty">暂无规则</div>';
+  $('ruleList').querySelectorAll('[data-i]').forEach(el=>el.onclick=()=>{selected=Number(el.dataset.i);renderRules();fillForm()});
+}
+function fillForm(){
+  const r = RULES[selected]; if(!r) return;
+  $('formTitle').textContent='编辑规则：'+r.name;
+  $('r_name').value=r.name; $('r_priority').value=r.priority; $('r_match_from').value=join(r.match_from);
+  $('r_keywords_any').value=join(r.keywords_any); $('r_keywords_all').value=join(r.keywords_all);
+  $('r_exclude').value=join(r.exclude); $('r_extract').value=r.extract; $('r_capture').value=r.capture;
+  $('r_notify').value=r.notify; $('r_ttl_sec').value=r.ttl_sec; $('r_copy_template').value=r.copy_template||'{code}';
+  $('r_enabled').checked=!!r.enabled; $('r_auto_copy').checked=!!r.auto_copy; $('r_keep_history').checked=!!r.keep_history;
+}
+function collect(){
+  const r = RULES[selected]; if(!r) return;
+  r.name=$('r_name').value.trim()||'未命名规则'; r.priority=Number($('r_priority').value)||0;
+  r.match_from=split($('r_match_from').value); r.keywords_any=split($('r_keywords_any').value);
+  r.keywords_all=split($('r_keywords_all').value); r.exclude=split($('r_exclude').value);
+  r.extract=$('r_extract').value; r.capture=Number($('r_capture').value)||0;
+  r.notify=$('r_notify').value; r.ttl_sec=Number($('r_ttl_sec').value)||180;
+  r.copy_template=$('r_copy_template').value||'{code}';
+  r.enabled=$('r_enabled').checked; r.auto_copy=$('r_auto_copy').checked; r.keep_history=$('r_keep_history').checked;
+}
+async function loadRules(){ RULES = await api('/api/rules'); selected=Math.min(selected,Math.max(0,RULES.length-1)); renderRules(); fillForm(); }
+$('btnAdd').onclick = ()=>{collect();RULES.push(blank());selected=RULES.length-1;renderRules();fillForm()};
+$('btnDelete').onclick = ()=>{ if(!RULES.length)return; RULES.splice(selected,1); selected=Math.max(0,Math.min(selected,RULES.length-1)); renderRules(); fillForm(); if(RULES.length)fillForm(); else $('ruleForm').style.opacity=.5 };
+$('btnSave').onclick = async ()=>{ collect(); try{ const d=await api('/api/rules',{method:'POST',body:JSON.stringify(RULES)}); tip(d.msg); await loadRules(); }catch(e){tip('保存失败：'+e.message)} };
+$('btnTest').onclick = async ()=>{
+  collect();
+  try{ const d=await api('/api/rules/test',{method:'POST',body:JSON.stringify({rule:RULES[selected],from:$('t_from').value,content:$('t_content').value})});
+    $('testOut').innerHTML = d.matched
+      ? `<span class="ok">✓ 命中</span>\n提取值：${esc(d.code)}\n复制文本：${esc(d.copy_text)}`
+      : `<span class="bad">✗ 未命中</span>  ${esc(d.reason||'')}`;
+  }catch(e){$('testOut').textContent='试跑失败：'+e.message}
+};
+
+/* ---------- 统计 ---------- */
+function table(el, arr){
+  el.innerHTML = arr.length ? arr.map(x=>`<tr><td>${esc(x.label)}</td><td style="text-align:right"><b>${x.value}</b></td></tr>`).join('') : '<tr><td class="muted">暂无数据</td></tr>';
+}
+async function loadStats(){
+  const d = await api('/api/stats?days='+$('statDays').value);
+  $('statCards').innerHTML = [['总接收',d.total],['命中规则',d.matched],['未命中',d.unmatched],['已复制',d.copied]]
+    .map(([k,v])=>`<div class="stat"><span>${k}</span><b>${v}</b></div>`).join('');
+  table($('byRule'), d.by_rule||[]); table($('bySender'), d.by_sender||[]);
+  const days=d.by_day||[], max=Math.max(1,...days.map(x=>x.value));
+  const W=1000,H=180,pad=22,bw=days.length?Math.min(46,(W-pad*2)/days.length*.7):0;
+  let svg='';
+  days.forEach((x,i)=>{ const cx=pad+(days.length?(W-pad*2)*(i+.5)/days.length:0), h=Math.max(2,(H-40)*x.value/max);
+    svg+=`<rect class="bar" x="${cx-bw/2}" y="${H-26-h}" width="${bw}" height="${h}" rx="3"><title>${esc(x.label)}: ${x.value}</title></rect>`;
+    if(days.length<=16||i%Math.ceil(days.length/12)===0) svg+=`<text class="axis" x="${cx}" y="${H-9}" text-anchor="middle">${esc(x.label.slice(5))}</text>`;
+  });
+  if(!days.length) svg=`<text class="axis" x="20" y="90">暂无数据</text>`;
+  $('chart').innerHTML=svg;
+}
+$('btnStatRefresh').onclick=loadStats; $('statDays').onchange=loadStats;
+
+/* ---------- 设置 ---------- */
+async function loadSettings(){
+  const s = await api('/api/state'); STATE=s;
+  $('s_listen').value=s.listen; $('s_port').value=s.port; $('s_hook_path').value=s.hook_path;
+  $('s_card_seconds').value=s.card_seconds; $('s_toast_limit').value=s.toast_limit;
+  $('s_retention_days').value=s.retention_days; $('s_mask_content').checked=s.mask_content;
+  $('s_keep_unmatched').checked=s.keep_unmatched; $('s_autostart').checked=s.autostart;
+  $('s_secret').placeholder = s.secret_set ? '已配置（留空表示不修改）' : '与手机端 Webhook 通道一致';
+  $('hookUrl').textContent=hookUrl(); $('hookHint').textContent='当前 Webhook 地址：'+hookUrl();
+}
+$('btnSettingsSave').onclick = async ()=>{
+  const p = {port:Number($('s_port').value),hook_path:$('s_hook_path').value.trim(),
+    card_seconds:Number($('s_card_seconds').value),toast_limit:Number($('s_toast_limit').value),
+    retention_days:Number($('s_retention_days').value),mask_content:$('s_mask_content').checked,
+    keep_unmatched:$('s_keep_unmatched').checked};
+  const secret=$('s_secret').value.trim(); if(secret) p.secret=secret;
+  try{ const a=await api('/api/settings',{method:'POST',body:JSON.stringify(p)});
+    await api('/api/autostart',{method:'POST',body:JSON.stringify({enabled:$('s_autostart').checked})});
+    tip(a.msg); await loadSettings(); }catch(e){tip('保存失败：'+e.message)}
+};
+$('btnReload').onclick = async ()=>{ try{const d=await api('/api/reload',{method:'POST',body:'{}'});tip(d.msg);await loadSettings()}catch(e){tip(e.message)} };
+$('btnTestNotify').onclick = async ()=>{ try{const d=await api('/api/test-notify',{method:'POST',body:'{}'});tip(d.msg)}catch(e){tip(e.message)} };
+
+if(location.hash==='#recent'){document.querySelector('[data-tab=recent]').click()}
+boot();
 </script>
 </body>
 </html>

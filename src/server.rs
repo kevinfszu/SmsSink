@@ -1,5 +1,7 @@
-use crate::config::{Config, SUCCESS_MARK};
-use crate::rules::{evaluate, Decision};
+use crate::app::AppState;
+use crate::config::SUCCESS_MARK;
+use crate::rules::evaluate;
+use crate::{admin, event, win};
 use base64::engine::general_purpose::STANDARD;
 use base64::Engine as _;
 use hmac::{Hmac, Mac};
@@ -8,7 +10,7 @@ use std::collections::HashSet;
 use std::io::{Read, Write};
 use std::net::{TcpListener, TcpStream};
 use std::sync::{Arc, Mutex};
-use std::time::{Duration, SystemTime, UNIX_EPOCH};
+use std::time::Duration;
 
 type HmacSha256 = Hmac<Sha256>;
 const MAX_BODY: usize = 1024 * 1024;
@@ -21,25 +23,48 @@ pub struct Inbox {
     pub sign: String,
 }
 
-/// 被动接收端：只 accept，不主动发起任何连接。
-pub fn run(cfg: Config) -> std::io::Result<()> {
-    let addr = format!("{}:{}", cfg.listen, cfg.port);
-    let listener = TcpListener::bind(&addr)?;
-    println!(
-        "[sink] 被动监听 {addr}{} （等待推送，不主动拉取）",
-        cfg.hook_path
-    );
-    println!("[sink] 管理台 http://127.0.0.1:{}/", cfg.port);
+pub struct Resp {
+    pub status: u16,
+    pub content_type: &'static str,
+    pub body: String,
+    pub extra_header: Option<String>,
+}
 
-    let cfg = Arc::new(cfg);
-    let seen: Arc<Mutex<HashSet<String>>> = Arc::new(Mutex::new(HashSet::new()));
+impl Resp {
+    pub fn json(status: u16, body: String) -> Self {
+        Self {
+            status,
+            content_type: "application/json; charset=utf-8",
+            body,
+            extra_header: None,
+        }
+    }
+    pub fn html(status: u16, body: String) -> Self {
+        Self {
+            status,
+            content_type: "text/html; charset=utf-8",
+            body,
+            extra_header: None,
+        }
+    }
+}
+
+/// 被动接收端：只 accept，不主动发起任何连接。
+pub fn run(state: Arc<AppState>) -> std::io::Result<()> {
+    let (listen, port, hook_path) = {
+        let cfg = state.cfg.read().unwrap_or_else(|e| e.into_inner());
+        (cfg.listen.clone(), cfg.port, cfg.hook_path.clone())
+    };
+    let addr = format!("{listen}:{port}");
+    let listener = TcpListener::bind(&addr)?;
+    println!("[sink] 被动监听 {addr}{hook_path} （等待推送，不主动拉取）");
+    println!("[sink] 管理台 http://127.0.0.1:{port}/ （仅本机可访问）");
 
     for stream in listener.incoming() {
         match stream {
             Ok(stream) => {
-                let cfg = Arc::clone(&cfg);
-                let seen = Arc::clone(&seen);
-                std::thread::spawn(move || handle(stream, cfg, seen));
+                let state = Arc::clone(&state);
+                std::thread::spawn(move || handle(stream, state));
             }
             Err(e) => eprintln!("[sink] accept 失败: {e}"),
         }
@@ -47,11 +72,15 @@ pub fn run(cfg: Config) -> std::io::Result<()> {
     Ok(())
 }
 
-fn handle(mut stream: TcpStream, cfg: Arc<Config>, seen: Arc<Mutex<HashSet<String>>>) {
+fn handle(mut stream: TcpStream, state: Arc<AppState>) {
     let _ = stream.set_read_timeout(Some(Duration::from_secs(5)));
+    let is_loopback = stream
+        .peer_addr()
+        .map(|a| a.ip().is_loopback())
+        .unwrap_or(false);
+
     let mut buf: Vec<u8> = Vec::with_capacity(4096);
     let mut tmp = [0u8; 4096];
-
     let header_end = loop {
         if let Some(pos) = find_header_end(&buf) {
             break pos;
@@ -82,28 +111,49 @@ fn handle(mut stream: TcpStream, cfg: Arc<Config>, seen: Arc<Mutex<HashSet<Strin
     let mut parts = head.lines().next().unwrap_or("").split_whitespace();
     let method = parts.next().unwrap_or("");
     let raw_path = parts.next().unwrap_or("/");
-    let path = raw_path.split('?').next().unwrap_or("/");
+    let (path, query) = raw_path.split_once('?').unwrap_or((raw_path, ""));
 
-    match (method, path) {
-        ("GET", "/") | ("GET", "/index.html") => {
-            respond_html(&mut stream, 200, include_str!("../assets/index.html"))
-        }
-        ("GET", "/api/health") => respond_json(
-            &mut stream,
-            200,
-            &format!(
-                "{{\"code\":0,\"app\":\"{}\",\"status\":\"listening\"}}",
-                crate::config::APP_ID
-            ),
-        ),
-        ("POST", p) if p == cfg.hook_path => receive(&mut stream, &cfg, &seen, &head, &body),
-        _ => respond_json(&mut stream, 404, "{\"code\":404,\"msg\":\"not found\"}"),
+    let cfg = state.cfg.read().unwrap_or_else(|e| e.into_inner()).clone();
+
+    // 手机端推送：唯一允许来自局域网的路径，靠 HMAC 加签鉴权
+    if method == "POST" && path == cfg.hook_path {
+        receive(&mut stream, &cfg, &state.seen, &head, &body);
+        return;
     }
+
+    // 管理台与静态页：仅允许本机回环地址
+    if !is_loopback {
+        respond(
+            &mut stream,
+            Resp::json(403, r#"{"code":403,"msg":"管理台仅允许本机访问"}"#.into()),
+        );
+        return;
+    }
+
+    let token_ok = {
+        let expected = &cfg.admin_token;
+        let from_query = query
+            .split('&')
+            .filter_map(|p| p.split_once('='))
+            .find(|(k, _)| *k == "token")
+            .map(|(_, v)| url_decode(v));
+        let from_header = header_value(&head, "X-SmsSink-Token");
+        let from_auth = header_value(&head, "Authorization")
+            .and_then(|v| v.strip_prefix("Bearer ").map(|s| s.trim().to_string()));
+        !expected.is_empty()
+            && [from_query, from_header, from_auth]
+                .into_iter()
+                .flatten()
+                .any(|v| v == *expected)
+    };
+
+    let resp = admin::route(method, path, query, &body, token_ok);
+    respond(&mut stream, resp);
 }
 
 fn receive(
     stream: &mut TcpStream,
-    cfg: &Config,
+    cfg: &crate::config::Config,
     seen: &Mutex<HashSet<String>>,
     head: &str,
     body: &str,
@@ -115,10 +165,9 @@ fn receive(
 
     if let Err(reason) = verify(cfg, &inbox, seen) {
         eprintln!("[sink] 拒绝请求: {reason}");
-        respond_json(
+        respond(
             stream,
-            401,
-            &format!("{{\"code\":401,\"msg\":\"{reason}\"}}"),
+            Resp::json(401, format!("{{\"code\":401,\"msg\":\"{reason}\"}}")),
         );
         return;
     }
@@ -128,28 +177,30 @@ fn receive(
         inbox.from,
         inbox.content.chars().count()
     );
-    match evaluate(cfg, &inbox.from, &inbox.content) {
-        Some(d) => report(&d),
-        None => println!("[sink]   未命中任何规则"),
-    }
+    let decision = evaluate(cfg, &inbox.from, &inbox.content);
+    event::submit(event::SmsEvent {
+        from: inbox.from,
+        content: inbox.content,
+        timestamp_ms: inbox
+            .timestamp
+            .parse::<i64>()
+            .unwrap_or_else(|_| win::now_ms()),
+        local_time: win::local_time(),
+        decision,
+    });
 
-    respond_json(
+    respond(
         stream,
-        200,
-        &format!("{{\"code\":0,\"msg\":\"{SUCCESS_MARK}\"}}"),
+        Resp::json(200, format!("{{\"code\":0,\"msg\":\"{SUCCESS_MARK}\"}}")),
     );
-}
-
-fn report(d: &Decision) {
-    println!(
-        "[sink]   规则「{}」→ 提取 {} | 通知={:?} | 自动复制={} | 复制文本={}",
-        d.rule_name, d.code, d.notify, d.auto_copy, d.copy_text
-    );
-    // 下一步接入：Toast / 卡片通知、复制按钮、剪贴板、SQLite 落盘、管理台推送
 }
 
 /// 官方加签规则：sign = urlEncode(Base64(HmacSHA256(timestamp + "\n" + secret, secret)))
-fn verify(cfg: &Config, inbox: &Inbox, seen: &Mutex<HashSet<String>>) -> Result<(), String> {
+fn verify(
+    cfg: &crate::config::Config,
+    inbox: &Inbox,
+    seen: &Mutex<HashSet<String>>,
+) -> Result<(), String> {
     if cfg.secret.is_empty() {
         return Ok(());
     }
@@ -157,11 +208,7 @@ fn verify(cfg: &Config, inbox: &Inbox, seen: &Mutex<HashSet<String>>) -> Result<
         .timestamp
         .parse()
         .map_err(|_| "timestamp 无效".to_string())?;
-    let now = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .unwrap_or_default()
-        .as_millis() as i64;
-    if (now - ts).abs() > cfg.timestamp_tolerance_secs * 1000 {
+    if (win::now_ms() - ts).abs() > cfg.timestamp_tolerance_secs * 1000 {
         return Err("timestamp 超出允许时间窗".into());
     }
 
@@ -185,7 +232,7 @@ fn verify(cfg: &Config, inbox: &Inbox, seen: &Mutex<HashSet<String>>) -> Result<
     Ok(())
 }
 
-fn parse_body(body: &str, is_json: bool) -> Inbox {
+pub(crate) fn parse_body(body: &str, is_json: bool) -> Inbox {
     if is_json {
         return match serde_json::from_str::<serde_json::Value>(body) {
             Ok(v) => Inbox {
@@ -225,7 +272,16 @@ fn pick(v: &serde_json::Value, keys: &[&str]) -> String {
     String::new()
 }
 
-fn url_decode(s: &str) -> String {
+pub(crate) fn query_value(query: &str, key: &str) -> String {
+    query
+        .split('&')
+        .filter_map(|p| p.split_once('='))
+        .find(|(k, _)| *k == key)
+        .map(|(_, v)| url_decode(v))
+        .unwrap_or_default()
+}
+
+pub(crate) fn url_decode(s: &str) -> String {
     let bytes = s.as_bytes();
     let mut out = Vec::with_capacity(bytes.len());
     let mut i = 0;
@@ -267,7 +323,7 @@ fn find_header_end(buf: &[u8]) -> Option<usize> {
     buf.windows(4).position(|w| w == b"\r\n\r\n").map(|p| p + 4)
 }
 
-fn header_value(head: &str, key: &str) -> Option<String> {
+pub(crate) fn header_value(head: &str, key: &str) -> Option<String> {
     head.lines().find_map(|line| {
         let (k, v) = line.split_once(':')?;
         if k.eq_ignore_ascii_case(key) {
@@ -278,28 +334,27 @@ fn header_value(head: &str, key: &str) -> Option<String> {
     })
 }
 
-fn respond_json(stream: &mut TcpStream, status: u16, body: &str) {
-    let reason = match status {
+fn respond(stream: &mut TcpStream, resp: Resp) {
+    let reason = match resp.status {
         200 => "OK",
+        400 => "Bad Request",
         401 => "Unauthorized",
+        403 => "Forbidden",
         404 => "Not Found",
+        405 => "Method Not Allowed",
         _ => "OK",
     };
+    let extra = resp
+        .extra_header
+        .map(|h| format!("{h}\r\n"))
+        .unwrap_or_default();
     let head = format!(
-        "HTTP/1.1 {status} {reason}\r\nContent-Type: application/json; charset=utf-8\r\nContent-Length: {}\r\nConnection: close\r\n\r\n",
-        body.as_bytes().len()
+        "HTTP/1.1 {} {reason}\r\nContent-Type: {}\r\nContent-Length: {}\r\nCache-Control: no-store\r\n{extra}Connection: close\r\n\r\n",
+        resp.status,
+        resp.content_type,
+        resp.body.as_bytes().len()
     );
     let _ = stream.write_all(head.as_bytes());
-    let _ = stream.write_all(body.as_bytes());
-    let _ = stream.flush();
-}
-
-fn respond_html(stream: &mut TcpStream, status: u16, body: &str) {
-    let head = format!(
-        "HTTP/1.1 {status} OK\r\nContent-Type: text/html; charset=utf-8\r\nContent-Length: {}\r\nConnection: close\r\n\r\n",
-        body.as_bytes().len()
-    );
-    let _ = stream.write_all(head.as_bytes());
-    let _ = stream.write_all(body.as_bytes());
+    let _ = stream.write_all(resp.body.as_bytes());
     let _ = stream.flush();
 }
