@@ -395,7 +395,11 @@ code{font-family:ui-monospace,"Cascadia Mono",Consolas,monospace;font-size:.9em;
         <div class="field"><label>监听地址</label><input id="s_listen" type="text" disabled></div>
         <div class="field"><label>端口<span class="badge">需重启</span></label><input id="s_port" type="number"></div>
         <div class="field"><label>Webhook 路径<span class="badge">需重启</span></label><input id="s_hook_path" type="text"></div>
-        <div class="field"><label>加签 Secret</label><input id="s_secret" type="text" placeholder="与手机端 Webhook 通道一致" autocomplete="off">
+        <div class="field"><label>加签 Secret</label>
+          <div class="row" style="gap:8px;align-items:stretch">
+            <input id="s_secret" type="text" placeholder="与手机端 Webhook 通道一致" autocomplete="off" style="flex:1;min-width:0">
+            <button class="btn" id="btnSecretGen">随机生成</button>
+          </div>
           <div class="hint">留空表示不修改；与手机端 SmsForwarder 保持一致，保存后立即生效。</div>
           <div class="row" id="secretCur" hidden style="gap:8px;margin-top:8px;align-items:center">
             <span class="code mono" id="secretMasked" style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></span>
@@ -694,6 +698,13 @@ $('btnSettingsSave').onclick = async ()=>{
 $('btnReload').onclick = async ()=>{ try{const d=await api('/api/reload',{method:'POST',body:'{}'});tip(d.msg);await loadSettings()}catch(e){tip(e.message)} };
 $('btnTestNotify').onclick = async ()=>{ try{const d=await api('/api/test-notify',{method:'POST',body:'{}'});tip(d.msg)}catch(e){tip(e.message)} };
 /* Secret：默认遮掩，按需显示/复制；「关闭加签」显式提交空值（留空输入框永远只代表不修改） */
+/* 生成 40 位随机 hex（20 字节 = 160 bit 熵），只填输入框，保存才生效 */
+const genSecret=()=>{const b=new Uint8Array(20);crypto.getRandomValues(b);
+  return Array.from(b,x=>x.toString(16).padStart(2,'0')).join('');};
+$('btnSecretGen').onclick=()=>{
+  $('s_secret').value=genSecret();
+  tip(STATE.secret_set?'已生成新 Secret：保存后旧签名立即作废，需同步到手机端':'已生成随机 Secret：点「保存设置」生效，再复制同步到手机端');
+};
 let secretShown=false;
 $('btnSecretShow').onclick = async ()=>{
   if(secretShown){ secretShown=false; $('btnSecretShow').textContent='显示';
