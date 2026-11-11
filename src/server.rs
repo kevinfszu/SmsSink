@@ -211,10 +211,7 @@ fn receive(
     event::submit(event::SmsEvent {
         from: inbox.from,
         content: inbox.content,
-        timestamp_ms: inbox
-            .timestamp
-            .parse::<i64>()
-            .unwrap_or_else(|_| win::now_ms()),
+        timestamp_ms: ts_ms(&inbox.timestamp),
         local_time: win::local_time(),
         decision,
         no_code,
@@ -227,6 +224,29 @@ fn receive(
 }
 
 /// 官方加签规则：sign = urlEncode(Base64(HmacSHA256(timestamp + "\n" + secret, secret)))
+
+/// 推送端有的给秒级（10 位）时间戳，有的给毫秒级（13 位）：按位数归一到毫秒。
+/// 不归一的话，秒级时间戳永远「超出时间窗」，表现为开了加签后全部被拒。
+fn ts_ms(raw: &str) -> i64 {
+    match raw.parse::<i64>() {
+        Ok(ts) => ts_ms_scale(ts),
+        Err(_) => win::now_ms(),
+    }
+}
+
+fn ts_ms_scale(ts: i64) -> i64 {
+    if ts.abs() < 1_000_000_000_000 {
+        ts * 1000
+    } else {
+        ts
+    }
+}
+
+fn ts_ms_checked(raw: &str) -> Result<i64, String> {
+    raw.parse::<i64>()
+        .map(ts_ms_scale)
+        .map_err(|_| "timestamp 无效".to_string())
+}
 fn verify(
     cfg: &crate::config::Config,
     inbox: &Inbox,
@@ -235,10 +255,7 @@ fn verify(
     if cfg.secret.is_empty() {
         return Ok(());
     }
-    let ts: i64 = inbox
-        .timestamp
-        .parse()
-        .map_err(|_| "timestamp 无效".to_string())?;
+    let ts = ts_ms_checked(&inbox.timestamp)?;
     if (win::now_ms() - ts).abs() > cfg.timestamp_tolerance_secs * 1000 {
         return Err("timestamp 超出允许时间窗".into());
     }
@@ -246,8 +263,12 @@ fn verify(
     let mut mac = HmacSha256::new_from_slice(cfg.secret.as_bytes())
         .expect("HMAC 接受任意长度密钥");
     mac.update(format!("{}\n{}", inbox.timestamp, cfg.secret).as_bytes());
+    // 表单 / JSON 解析时已经 urlDecode 过一次，这里不能再解：Base64 里的 '+' 会被
+    // 二次解码吃成空格，导致约三分之一的合法签名被误判为「不是合法 Base64」。
+    // 个别客户端把 '+' 原样塞进表单（会被表单解析当成空格），Base64 里本就没有
+    // 空格，换回 '+' 属于无损容错。
     let decoded = STANDARD
-        .decode(url_decode(&inbox.sign).as_bytes())
+        .decode(inbox.sign.replace(' ', "+").as_bytes())
         .map_err(|_| "sign 不是合法 Base64".to_string())?;
     mac.verify_slice(&decoded)
         .map_err(|_| "sign 校验失败".to_string())?;
@@ -388,4 +409,93 @@ fn respond(stream: &mut TcpStream, resp: Resp) {
     let _ = stream.write_all(head.as_bytes());
     let _ = stream.write_all(resp.body.as_bytes());
     let _ = stream.flush();
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// 回归：表单解析已经 urlDecode 过一次，verify 里再解一次会把 Base64 的 '+'
+    /// 吃成空格——SHA256 的 Base64 约三分之一概率含 '+'，表现为手机端随机推送失败。
+    /// 这里特意构造一个带 '+' 的签名，走完「表单 → 解析 → 校验」全链路。
+    #[test]
+    fn form_sign_with_plus_survives_parsing() {
+        // 找一个签名里带 '+' 的 secret/timestamp 组合
+        let ts = win::now_ms().to_string();
+        let mut secret = String::from("s");
+        let sign = loop {
+            let mut mac = HmacSha256::new_from_slice(secret.as_bytes()).unwrap();
+            mac.update(format!("{}\n{}", ts, secret).as_bytes());
+            let s = STANDARD.encode(mac.finalize().into_bytes());
+            if s.contains('+') {
+                break s;
+            }
+            secret.push('x');
+        };
+        assert!(sign.contains('+'), "测试前提：签名要包含 '+'");
+
+        // 按表单规范编码：+ -> %2B，/ -> %2F，= -> %3D
+        let encoded: String = sign
+            .chars()
+            .map(|c| match c {
+                '+' => "%2B".to_string(),
+                '/' => "%2F".to_string(),
+                '=' => "%3D".to_string(),
+                c => c.to_string(),
+            })
+            .collect();
+        let body = format!("from=10086&content=hi&timestamp={ts}&sign={encoded}");
+        let inbox = parse_body(&body, false);
+
+        let cfg = crate::config::Config {
+            secret: secret.clone(),
+            ..Default::default()
+        };
+        let seen = Mutex::new(HashSet::new());
+        assert!(verify(&cfg, &inbox, &seen).is_ok(), "带 '+' 的合法签名被拒绝");
+
+        // 同一签名重放要被拦下
+        assert!(verify(&cfg, &inbox, &seen).is_err(), "重放未被拦截");
+    }
+
+    /// 秒级时间戳（10 位）也要能过校验
+    #[test]
+    fn seconds_timestamp_is_normalized() {
+        let ts = (win::now_ms() / 1000).to_string(); // 秒级
+        let secret = "sec";
+        let mut mac = HmacSha256::new_from_slice(secret.as_bytes()).unwrap();
+        mac.update(format!("{}\n{}", ts, secret).as_bytes());
+        let sign = STANDARD.encode(mac.finalize().into_bytes());
+        let body = format!("from=10086&content=hi&timestamp={ts}&sign={sign}");
+        let inbox = parse_body(&body, false);
+        let cfg = crate::config::Config { secret: secret.into(), ..Default::default() };
+        let seen = Mutex::new(HashSet::new());
+        assert!(verify(&cfg, &inbox, &seen).is_ok(), "秒级时间戳被拒");
+        assert_eq!(ts_ms(&ts) % 1000, 0, "应已乘 1000");
+    }
+
+    /// 容错：客户端没把 '+' 编码成 %2B、原样塞进表单时，表单解析会把它当成空格，
+    /// verify 应该无损换回 '+'。
+    #[test]
+    fn raw_plus_sign_is_tolerated() {
+        let ts = win::now_ms().to_string();
+        let secret = "fixed-secret";
+        let mut mac = HmacSha256::new_from_slice(secret.as_bytes()).unwrap();
+        mac.update(format!("{}\n{}", ts, secret).as_bytes());
+        let sign = STANDARD.encode(mac.finalize().into_bytes());
+        let raw: String = sign.chars().map(|c| if c == '+' { ' ' } else { c }).collect();
+        let body = format!("from=10086&content=hi&timestamp={ts}&sign={raw}");
+        let inbox = parse_body(&body, false);
+        let cfg = crate::config::Config {
+            secret: secret.into(),
+            ..Default::default()
+        };
+        let seen = Mutex::new(HashSet::new());
+        let r = verify(&cfg, &inbox, &seen);
+        // 只在签名确实含 '+' 时这个用例才有意义；不含则本来就过
+        assert!(r.is_ok() || !sign.contains('+'));
+        if sign.contains('+') {
+            assert!(r.is_ok(), "原样 '+' 的签名被拒绝");
+        }
+    }
 }
