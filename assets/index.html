@@ -7,86 +7,229 @@
 <link rel="icon" type="image/png" href="data:image/png;base64,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">
 <style>
 :root{
-  --bg:#f5f6f8; --panel:#fff; --line:#e6e8ec; --text:#1c2026; --muted:#6b7280;
-  --accent:#2563eb; --accent-soft:#eaf1ff; --code:#0f766e; --code-bg:#ecfdf5;
-  --danger:#dc2626; --shadow:0 1px 2px rgba(16,24,40,.04),0 8px 24px rgba(16,24,40,.06);
+  /* 色板：中性色只有 4 阶，语义色只有 accent / ok / danger */
+  --bg:#f6f7f9; --bg-blur:rgba(246,247,249,.82);
+  --panel:#fff; --panel-2:#fafbfc;
+  --line:#ebedf0; --line-strong:#dde1e7;
+  --text:#15181d; --text-2:#414852; --muted:#6e7480; --faint:#9aa1ad;
+  --accent:#2563eb; --accent-hover:#1d4ed8; --accent-soft:#eff4ff;
+  --ok:#059669; --ok-soft:#ecfdf5;
+  --warn:#b45309; --warn-soft:#fffbeb;
+  --danger:#dc2626; --danger-soft:#fef2f2;
+  --code-bg:#f2f4f7;
+  /* 圆角 3 档：控件 / 卡片 / 浮层 */
+  --r-sm:8px; --r-md:12px; --r-lg:16px;
+  /* 阴影 2 档：在页面里的卡片 / 浮在页面上的层 */
+  --sh-1:0 1px 2px rgba(16,24,40,.05),0 1px 3px rgba(16,24,40,.04);
+  --sh-2:0 16px 40px -12px rgba(16,24,40,.22),0 2px 8px rgba(16,24,40,.06);
+  --ease:cubic-bezier(.2,.7,.3,1);
 }
 @media (prefers-color-scheme:dark){
-  :root{--bg:#15171b;--panel:#1d2026;--line:#2d313a;--text:#e8eaee;--muted:#969ca8;
-  --accent:#6d9dff;--accent-soft:#24304a;--code:#5eead4;--code-bg:#17312f;
-  --danger:#f87171;--shadow:0 1px 2px rgba(0,0,0,.3),0 8px 24px rgba(0,0,0,.25)}
+  :root{
+    --bg:#0e1014; --bg-blur:rgba(14,16,20,.82);
+    --panel:#16191f; --panel-2:#1b1f26;
+    --line:#272d37; --line-strong:#333b47;
+    --text:#eef0f4; --text-2:#c3c8d2; --muted:#98a0ad; --faint:#6b7482;
+    --accent:#7aa2ff; --accent-hover:#93b4ff; --accent-soft:#1b2436;
+    --ok:#34d399; --ok-soft:#11291f;
+    --warn:#fbbf24; --warn-soft:#2a2110;
+    --danger:#f87171; --danger-soft:#2b1618;
+    --code-bg:#1d222a;
+    --sh-1:0 1px 2px rgba(0,0,0,.5);
+    --sh-2:0 18px 44px -14px rgba(0,0,0,.75),0 2px 10px rgba(0,0,0,.4);
+  }
 }
 *{box-sizing:border-box}
-body{margin:0;background:var(--bg);color:var(--text);font:14px/1.6 "Segoe UI","Microsoft YaHei",system-ui,sans-serif}
-a{color:var(--accent)}
-.wrap{max-width:1180px;margin:0 auto;padding:28px 24px 60px}
-header{display:flex;align-items:center;gap:14px;margin-bottom:22px;flex-wrap:wrap}
-.logo{width:38px;height:38px;border-radius:11px;display:block;flex:none}
-h1{font-size:19px;font-weight:600;margin:0;letter-spacing:.2px}
-.sub{color:var(--muted);font-size:12px;margin-top:1px}
+body{
+  margin:0;background:var(--bg);color:var(--text);
+  /* 中文界面必须用自带汉字字形的字体：Segoe UI 没有汉字，混排会掉到另一套字形 */
+  font:14px/1.55 "Microsoft YaHei UI","Microsoft YaHei","Segoe UI",system-ui,sans-serif;
+  -webkit-font-smoothing:antialiased;
+}
+a{color:var(--accent);text-decoration:none}
+a:hover{text-decoration:underline}
+.wrap{max-width:1080px;margin:0 auto;padding:28px 24px 72px}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:4px}
+::selection{background:var(--accent-soft);color:var(--text)}
+::-webkit-scrollbar{width:11px;height:11px}
+::-webkit-scrollbar-thumb{background:var(--line-strong);border-radius:8px;border:3px solid var(--bg)}
+::-webkit-scrollbar-thumb:hover{background:var(--faint)}
+
+/* ---------- 页头：应用身份只有三件事，名字 / 一句说明 / 是否在干活 ---------- */
+header{display:flex;align-items:center;gap:12px;margin-bottom:20px;flex-wrap:wrap}
+.logo{width:36px;height:36px;border-radius:10px;display:block;flex:none}
+h1{font-size:20px;line-height:1.3;font-weight:600;margin:0;letter-spacing:-.01em}
+.sub{color:var(--muted);font-size:12px;margin-top:2px}
 .spacer{flex:1}
-.pill{display:inline-flex;align-items:center;gap:6px;background:var(--panel);border:1px solid var(--line);border-radius:999px;padding:6px 12px;font-size:12px;color:var(--muted)}
-.dot{width:7px;height:7px;border-radius:50%;background:#16a34a}
-nav{display:flex;gap:4px;background:var(--panel);border:1px solid var(--line);padding:4px;border-radius:11px;margin-bottom:20px;box-shadow:var(--shadow)}
-nav button{border:0;background:transparent;color:var(--muted);padding:8px 16px;border-radius:8px;cursor:pointer;font:inherit;font-weight:500}
-nav button.on{background:var(--accent-soft);color:var(--accent)}
-section{display:none} section.on{display:block}
-.panel{background:var(--panel);border:1px solid var(--line);border-radius:13px;box-shadow:var(--shadow);padding:20px;margin-bottom:16px}
-.panel h2{font-size:15px;margin:0 0 14px;font-weight:600}
+.pill{
+  display:inline-flex;align-items:center;gap:6px;background:var(--ok-soft);color:var(--ok);
+  border-radius:100px;padding:5px 11px;font-size:12px;font-weight:500;
+}
+.dot{width:6px;height:6px;border-radius:50%;background:currentColor;flex:none}
+
+/* ---------- 选项卡：靠一条底线和颜色区分，不做胶囊外壳 ---------- */
+nav{
+  position:sticky;top:0;z-index:8;display:flex;gap:24px;
+  border-bottom:1px solid var(--line);background:var(--bg-blur);
+  -webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);
+  margin:0 0 24px;
+}
+nav button{
+  appearance:none;background:none;border:0;border-bottom:2px solid transparent;
+  padding:11px 0;margin-bottom:-1px;font:inherit;font-size:14px;color:var(--muted);
+  cursor:pointer;transition:color .15s var(--ease),border-color .15s var(--ease);
+}
+nav button:hover{color:var(--text-2)}
+nav button.on{color:var(--text);border-bottom-color:var(--accent);font-weight:600}
+
+section{display:none;animation:fade .18s var(--ease)}
+section.on{display:block}
+@keyframes fade{from{opacity:0;transform:translateY(2px)}to{opacity:1;transform:none}}
+
+/* ---------- 卡片：不要边框，用明度差 + 阴影分层 ---------- */
+.panel{background:var(--panel);border-radius:var(--r-md);box-shadow:var(--sh-1);padding:24px;margin-bottom:16px}
+.panel h2{font-size:14px;font-weight:600;margin:0 0 16px;color:var(--text);letter-spacing:.01em}
+.panel h2 .muted{font-weight:400}
 .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
-input,select,textarea{background:var(--bg);color:var(--text);border:1px solid var(--line);border-radius:8px;padding:8px 11px;font:inherit;outline:none;min-width:0}
-input:focus,select:focus,textarea:focus{border-color:var(--accent)}
+.page-head{display:flex;align-items:center;gap:10px;margin:0 0 16px;min-height:34px}
+.page-head h2{font-size:16px;font-weight:600;margin:0;letter-spacing:-.01em}
+.page-head .count{font-size:12px;color:var(--muted)}
+.fs-title{font-size:12px;font-weight:600;color:var(--muted);margin:24px 0 12px;letter-spacing:.04em}
+.fs-title:first-of-type{margin-top:0}
+.fs-grid{margin-bottom:24px}
+
+/* ---------- 控件 ---------- */
+input,select,textarea{
+  background:var(--panel);color:var(--text);border:1px solid var(--line-strong);
+  border-radius:var(--r-sm);padding:0 10px;height:34px;font:inherit;outline:none;min-width:0;
+  transition:border-color .15s var(--ease),box-shadow .15s var(--ease),background .15s;
+}
+input:hover,select:hover,textarea:hover{border-color:var(--faint)}
+input:focus,select:focus,textarea:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+input:disabled{background:var(--panel-2);color:var(--muted);cursor:not-allowed}
 input[type=text],input[type=number],textarea{width:100%}
-textarea{resize:vertical;min-height:74px;font-family:ui-monospace,Consolas,monospace;font-size:13px}
-label{display:block;font-size:12px;color:var(--muted);margin-bottom:5px}
-.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:14px}
-.btn{border:1px solid var(--line);background:var(--panel);color:var(--text);padding:8px 14px;border-radius:8px;cursor:pointer;font:inherit;font-weight:500;white-space:nowrap}
-.btn:hover{border-color:var(--accent);color:var(--accent)}
+textarea{resize:vertical;height:auto;min-height:60px;padding:8px 10px;font-family:ui-monospace,"Cascadia Mono",Consolas,monospace;font-size:14px;line-height:1.6}
+label{display:block;font-size:12px;color:var(--muted);margin-bottom:6px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px}
+.field{margin-bottom:16px}
+.check{display:inline-flex;align-items:center;gap:8px;font-size:14px;color:var(--text-2);cursor:pointer}
+.check input{width:auto;height:auto;padding:0;accent-color:var(--accent)}
+.hint{font-size:12px;color:var(--muted);margin-top:6px;line-height:1.6}
+
+.btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:6px;border:1px solid var(--line-strong);
+  background:var(--panel);color:var(--text-2);height:34px;padding:0 12px;border-radius:var(--r-sm);
+  cursor:pointer;font:inherit;font-size:14px;font-weight:500;white-space:nowrap;
+  transition:background .15s var(--ease),border-color .15s var(--ease),color .15s var(--ease);
+}
+.btn:hover{background:var(--panel-2);border-color:var(--faint);color:var(--text)}
+.btn:active{transform:translateY(.5px)}
 .btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
-.btn.primary:hover{opacity:.9;color:#fff}
-.btn.sm{padding:5px 10px;font-size:12px}
-.btn.danger{color:var(--danger)}
-table{width:100%;border-collapse:collapse;font-size:13px}
-th{text-align:left;font-weight:500;color:var(--muted);font-size:12px;padding:9px 10px;border-bottom:1px solid var(--line);white-space:nowrap}
-td{padding:10px;border-bottom:1px solid var(--line);vertical-align:middle}
-tr:last-child td{border-bottom:0}
-tbody tr:hover{background:var(--bg)}
-.code{font:600 17px/1.3 ui-monospace,Consolas,monospace;color:var(--code);background:var(--code-bg);padding:4px 10px;border-radius:7px;display:inline-block;letter-spacing:1px}
+.btn.primary:hover{background:var(--accent-hover);border-color:var(--accent-hover);color:#fff}
+.btn.sm{height:28px;padding:0 10px;font-size:12px}
+.btn.ghost{background:transparent;border-color:transparent;color:var(--muted)}
+.btn.ghost:hover{background:var(--panel-2);color:var(--text)}
+.btn.danger{background:transparent;border-color:transparent;color:var(--danger)}
+.btn.danger:hover{background:var(--danger-soft);color:var(--danger)}
+.btn[disabled]{opacity:.5;pointer-events:none}
+
+/* ---------- 表格：只有横线，没有竖线 ---------- */
+/* 表格自己滚，表头才吸得住；让页面滚的话 sticky 会飞到卡片外面 */
+.table-wrap{overflow:auto;max-height:calc(100vh - 300px);margin:0 -8px;padding:0 8px}
+table{width:100%;table-layout:fixed;border-collapse:separate;border-spacing:0;font-size:14px}
+th{
+  position:sticky;top:0;z-index:2;background:var(--panel);
+  text-align:left;font-weight:500;color:var(--muted);font-size:12px;
+  padding:8px 12px;border-bottom:1px solid var(--line);white-space:nowrap;
+}
+td{padding:9px 12px;border-bottom:1px solid var(--line);vertical-align:middle}
+tbody tr:last-child td{border-bottom:0}
+tbody tr{transition:background .12s var(--ease)}
+tbody tr[data-i]{cursor:pointer}
+tbody tr:hover td{background:var(--panel-2)}
+tbody tr.detail td{background:var(--panel-2);padding:0 12px 14px;border-bottom:1px solid var(--line)}
+tbody tr.detail:hover td{background:var(--panel-2)}
+.detail-box{font-size:14px;color:var(--text-2);line-height:1.7;max-width:760px}
+.meta{font-size:12px;color:var(--faint);margin-top:2px}
+.num{font-variant-numeric:tabular-nums}
+
+.code{
+  font-family:ui-monospace,"Cascadia Mono",Consolas,monospace;
+  font-size:14px;font-weight:600;letter-spacing:.08em;color:var(--text);
+  background:var(--code-bg);padding:3px 8px;border-radius:6px;display:inline-block;
+  font-variant-numeric:tabular-nums;
+}
+.tag{display:inline-block;padding:2px 8px;border-radius:6px;background:var(--accent-soft);color:var(--accent);font-size:12px;font-weight:500}
+.tag.gray{background:var(--panel-2);color:var(--muted);font-weight:400}
+.tag.ok{background:var(--ok-soft);color:var(--ok)}
+.badge{display:inline-block;font-size:12px;padding:1px 6px;border-radius:4px;background:var(--warn-soft);color:var(--warn);margin-left:6px;vertical-align:1px;font-weight:500}
 .muted{color:var(--muted)}
-.tag{display:inline-block;padding:2px 8px;border-radius:6px;background:var(--accent-soft);color:var(--accent);font-size:12px}
 .nowrap{white-space:nowrap}
-.empty{text-align:center;color:var(--muted);padding:40px 0}
-.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:18px}
-.stat{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px 18px;box-shadow:var(--shadow)}
-.stat b{display:block;font-size:26px;font-weight:600;letter-spacing:-.5px;margin-top:4px}
-.stat span{color:var(--muted);font-size:12px}
-.chart{width:100%;height:180px;overflow:visible}
-.bar{fill:var(--accent);opacity:.85}
+.mono{font-family:ui-monospace,"Cascadia Mono",Consolas,monospace}
+.empty{text-align:center;color:var(--muted);padding:48px 0;font-size:14px}
+.clip{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+tbody .btn.rowcopy{background:transparent;border-color:transparent;color:var(--faint)}
+tbody tr:hover .btn.rowcopy{background:var(--panel);border-color:var(--line-strong);color:var(--text)}
+code{font-family:ui-monospace,"Cascadia Mono",Consolas,monospace;font-size:.9em;background:var(--code-bg);padding:1px 5px;border-radius:4px;color:var(--text-2)}
+
+.share{height:4px;border-radius:2px;background:var(--line);margin-top:8px;overflow:hidden}
+.share i{display:block;height:100%;background:var(--accent);opacity:.5;border-radius:2px}
+
+/* ---------- 统计 ---------- */
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:24px}
+.stat{background:var(--panel);border-radius:var(--r-md);padding:16px 20px;box-shadow:var(--sh-1)}
+.stat span{display:block;color:var(--muted);font-size:12px;margin-bottom:6px}
+.stat b{display:block;font-size:28px;line-height:1.1;font-weight:600;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+.chart{width:100%;height:200px;overflow:visible;margin-top:4px}
+.bar{fill:var(--accent);opacity:.85;transition:opacity .15s var(--ease)}
 .bar:hover{opacity:1}
-.axis{font-size:10px;fill:var(--muted)}
-.rules-layout{display:grid;grid-template-columns:260px 1fr;gap:16px}
-@media(max-width:800px){.rules-layout{grid-template-columns:1fr}}
-.rule-list{border:1px solid var(--line);border-radius:10px;overflow:hidden}
-.rule-item{padding:11px 13px;border-bottom:1px solid var(--line);cursor:pointer;display:flex;justify-content:space-between;gap:8px;align-items:center}
-.rule-item:last-child{border-bottom:0}
-.rule-item:hover{background:var(--bg)}
-.rule-item.on{background:var(--accent-soft);color:var(--accent)}
-.rule-item small{color:var(--muted);display:block;font-size:11px}
-.pre{margin-top:12px;padding:12px;border-radius:9px;background:var(--bg);border:1px solid var(--line);font:13px/1.7 ui-monospace,Consolas,monospace;white-space:pre-wrap;word-break:break-all}
-.ok{color:var(--code)} .bad{color:var(--danger)}
-#gate{position:fixed;inset:0;background:var(--bg);display:none;place-items:center;z-index:9}
-#gate .box{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:28px;box-shadow:var(--shadow);width:min(420px,92vw)}
-#toast{position:fixed;right:22px;bottom:22px;background:var(--panel);border:1px solid var(--line);border-left:3px solid var(--accent);border-radius:10px;padding:12px 18px;box-shadow:var(--shadow);opacity:0;transform:translateY(8px);transition:.2s;pointer-events:none;z-index:20}
-#toast.show{opacity:1;transform:translateY(0)}
-.field{margin-bottom:13px}
-.check{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text)}
-.check input{width:auto}
-.hint{font-size:12px;color:var(--muted);margin-top:5px}
+.axis{font-size:12px;fill:var(--faint);font-variant-numeric:tabular-nums}
+.grid-line{stroke:var(--line);stroke-width:1;shape-rendering:crispEdges}
+.chart-title{display:flex;align-items:baseline;gap:8px;margin:24px 0 8px}
+.chart-title h2{margin:0}
+
+/* ---------- 规则：左列表右表单 ---------- */
+.rules-layout{display:grid;grid-template-columns:272px 1fr;gap:16px;align-items:start}
+.rule-side{position:sticky;top:64px}
+@media(max-width:860px){.rules-layout{grid-template-columns:1fr}}
+.rule-list{border-radius:var(--r-sm);overflow:hidden;margin:-8px -12px 0}
+.rule-item{
+  padding:10px 12px;cursor:pointer;display:flex;gap:10px;align-items:center;
+  border-left:2px solid transparent;transition:background .12s var(--ease);
+}
+.rule-item+.rule-item{box-shadow:inset 0 1px 0 var(--line)}
+.rule-item:hover{background:var(--panel-2)}
+.rule-item.on{background:var(--accent-soft);border-left-color:var(--accent)}
+.rule-item.on .rule-name{color:var(--accent)}
+.rule-name{font-weight:500;font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rule-item small{color:var(--muted);display:block;font-size:12px;margin-top:2px;font-variant-numeric:tabular-nums}
+.rule-state{flex:none;width:6px;height:6px;border-radius:50%;background:var(--line-strong)}
+.rule-state.on{background:var(--ok)}
+.pre{
+  margin-top:12px;padding:12px 14px;border-radius:var(--r-sm);background:var(--panel-2);
+  font:14px/1.7 ui-monospace,"Cascadia Mono",Consolas,monospace;white-space:pre-wrap;word-break:break-all;color:var(--text-2);
+}
+.ok{color:var(--ok);font-weight:600}
+.bad{color:var(--danger);font-weight:600}
+
+/* ---------- 浮层 ---------- */
+#gate{position:fixed;inset:0;background:rgba(18,22,30,.34);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);display:none;place-items:center;z-index:40}
+#gate .box{background:var(--panel);border-radius:var(--r-lg);padding:28px;box-shadow:var(--sh-2);width:min(420px,92vw)}
+#gate .box h2{font-size:16px;margin:0 0 8px}
+#toast{
+  position:fixed;right:24px;bottom:24px;display:flex;align-items:center;gap:8px;
+  background:var(--text);color:var(--bg);padding:10px 16px;border-radius:10px;
+  font-size:14px;box-shadow:var(--sh-2);opacity:0;transform:translateY(6px);
+  transition:opacity .18s var(--ease),transform .18s var(--ease);
+  pointer-events:none;z-index:50;max-width:min(420px,80vw);
+}
+#toast.show{opacity:1;transform:none}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 </style>
 </head>
 <body>
 <div id="gate"><div class="box">
-  <h2 style="margin:0 0 8px">输入访问令牌</h2>
+  <h2>输入访问令牌</h2>
   <p class="muted" style="margin:0 0 16px">管理台只允许本机访问。令牌在程序启动日志或 config.json 的 <code>admin_token</code> 字段中，也可以直接从托盘菜单「打开管理台」进入。</p>
   <input id="gateToken" type="text" placeholder="32 位十六进制令牌" autocomplete="off">
   <div style="margin-top:14px"><button class="btn primary" id="gateOk">进入</button></div>
@@ -110,67 +253,92 @@ tbody tr:hover{background:var(--bg)}
 
   <!-- 最近记录 -->
   <section id="recent" class="on">
+    <div class="page-head">
+      <h2>最近记录</h2>
+      <div class="spacer"></div>
+      <button class="btn ghost" id="btnCsv">导出 CSV</button>
+    </div>
     <div class="panel">
-      <div class="row" style="margin-bottom:14px">
-        <input id="fSender" type="text" placeholder="来源号码" style="width:150px">
-        <input id="fRule" type="text" placeholder="规则名" style="width:160px">
-        <input id="fQuery" type="text" placeholder="搜索原文 / 验证码" style="width:210px">
+      <div class="row" style="margin-bottom:16px">
+        <input id="fSender" type="text" placeholder="来源号码" style="width:132px">
+        <input id="fRule" type="text" placeholder="规则名" style="width:132px">
+        <input id="fQuery" type="text" placeholder="搜索原文或验证码" style="width:200px">
         <button class="btn" id="btnRefresh">刷新</button>
         <div class="spacer"></div>
-        <button class="btn" id="btnCsv">导出 CSV</button>
-      </div>
-      <table><thead><tr>
-        <th>时间</th><th>来源</th><th>提取值</th><th>命中规则</th><th>通知</th><th>状态</th><th>原文</th><th></th>
-      </tr></thead><tbody id="rows"></tbody></table>
-      <div id="rowsEmpty" class="empty" style="display:none">暂无记录。手机端推送一条短信后这里就会出现。</div>
-      <div class="row" style="margin-top:14px">
+        <span class="muted" id="pageInfo" style="font-size:12px">第 1 页</span>
         <button class="btn sm" id="btnPrev">上一页</button>
-        <span class="muted" id="pageInfo">第 1 页</span>
         <button class="btn sm" id="btnNext">下一页</button>
       </div>
+      <div class="table-wrap">
+      <table><thead><tr>
+        <th style="width:112px">时间</th><th style="width:110px">来源</th><th style="width:124px">验证码</th><th style="width:150px">规则 / 通知</th><th>原文</th><th style="width:64px"></th>
+      </tr></thead><tbody id="rows"></tbody></table>
+      </div>
+      <div id="rowsEmpty" class="empty" style="display:none">还没有收到短信。<br>在手机端 SmsForwarder 配好 Webhook 后，这里会实时出现记录。</div>
+
     </div>
   </section>
 
   <!-- 规则管理 -->
   <section id="rules">
+    <div class="page-head">
+      <h2>规则</h2>
+      <span class="count">按优先级从高到低匹配</span>
+      <div class="spacer"></div>
+      <button class="btn" id="btnAdd">新建规则</button>
+    </div>
     <div class="rules-layout">
-      <div class="panel" style="align-self:start">
-        <div class="row" style="margin-bottom:12px">
-          <h2 style="margin:0;flex:1">规则（按优先级）</h2>
-          <button class="btn sm" id="btnAdd">＋</button>
-        </div>
+      <div class="panel rule-side">
         <div class="rule-list" id="ruleList"></div>
-        <div class="row" style="margin-top:14px">
-          <button class="btn primary" id="btnSave" style="flex:1">保存并生效</button>
-        </div>
-        <p class="hint">保存后立即生效，无需重启。重启也不会丢失。</p>
+        <p class="hint">改动后点右侧「保存并生效」，写入 config.json，无需重启。</p>
       </div>
       <div>
         <div class="panel" id="ruleForm">
-          <h2 id="formTitle">编辑规则</h2>
-          <div class="grid">
+          <div class="row" style="margin-bottom:20px">
+            <h2 id="formTitle" style="margin:0;flex:1">编辑规则</h2>
+            <button class="btn primary" id="btnSave">保存并生效</button>
+          </div>
+
+          <div class="fs-title">基本信息</div>
+          <div class="grid fs-grid">
             <div class="field"><label>规则名</label><input id="r_name" type="text"></div>
             <div class="field"><label>优先级（大者优先）</label><input id="r_priority" type="number"></div>
-            <div class="field"><label>匹配来源（逗号分隔，留空不限）</label><input id="r_match_from" type="text" placeholder="1069xxxx, 10086"></div>
-            <div class="field"><label>通知方式</label><select id="r_notify">
-              <option value="toast">Toast（通知中心 + 复制按钮）</option>
-              <option value="card">卡片（右下角大号显示）</option>
-              <option value="silent">静默（仅入最近记录）</option>
-            </select></div>
-            <div class="field"><label>任一包含关键词（逗号分隔）</label><input id="r_keywords_any" type="text" placeholder="验证码,校验码,动态密码"></div>
-            <div class="field"><label>全部包含关键词（逗号分隔）</label><input id="r_keywords_all" type="text"></div>
-            <div class="field"><label>排除关键词（逗号分隔）</label><input id="r_exclude" type="text"></div>
+          </div>
+
+          <div class="fs-title">匹配条件</div>
+          <div class="grid fs-grid" style="grid-template-columns:repeat(2,1fr)">
+            <div class="field"><label>来源号码（逗号分隔，留空不限）</label><input id="r_match_from" type="text" placeholder="1069xxxx, 10086"></div>
+            <div class="field"><label>任一包含关键词</label><input id="r_keywords_any" type="text" placeholder="验证码,校验码,动态密码"></div>
+            <div class="field"><label>全部包含关键词</label><input id="r_keywords_all" type="text" placeholder="留空表示不要求"></div>
+            <div class="field"><label>排除关键词</label><input id="r_exclude" type="text" placeholder="退订,回复TD"></div>
+          </div>
+
+          <div class="fs-title">提取</div>
+          <div class="field"><label>提取正则</label><textarea id="r_extract"></textarea>
+            <div class="hint">建议用「关键词 + 上下文窗口」取 4–8 位数字，避免订单号、金额误命中；不要用裸 \d{6}。</div>
+          </div>
+          <div class="grid fs-grid">
             <div class="field"><label>捕获组序号</label><input id="r_capture" type="number" min="0"></div>
             <div class="field"><label>有效期（秒）</label><input id="r_ttl_sec" type="number"></div>
             <div class="field"><label>复制模板</label><input id="r_copy_template" type="text" placeholder="{code}"></div>
           </div>
-          <div class="field"><label>提取正则</label><textarea id="r_extract"></textarea>
-            <div class="hint">建议「关键词 + 上下文窗口」取 4–8 位数字，避免订单号 / 金额误命中。不要用裸 \d{6}。</div>
+
+          <div class="fs-title">通知</div>
+          <div class="grid fs-grid" style="grid-template-columns:repeat(2,1fr)">
+            <div class="field"><label>通知方式</label><select id="r_notify">
+              <option value="card">卡片 · 右下角大号显示</option>
+              <option value="toast">系统通知 · 进通知中心</option>
+              <option value="silent">静默 · 只写入记录</option>
+            </select></div>
           </div>
-          <div class="row">
-            <label class="check"><input id="r_enabled" type="checkbox"> 启用</label>
-            <label class="check"><input id="r_auto_copy" type="checkbox"> 收到即自动写入剪贴板</label>
+          <div class="row" style="gap:24px;margin:-8px 0 24px">
+            <label class="check"><input id="r_enabled" type="checkbox"> 启用此规则</label>
+            <label class="check"><input id="r_auto_copy" type="checkbox"> 收到即写入剪贴板</label>
             <label class="check"><input id="r_keep_history" type="checkbox"> 保留历史</label>
+          </div>
+
+          <div class="row" style="border-top:1px solid var(--line);padding-top:16px;margin-top:4px">
+            <span class="hint" style="margin:0">删除后不可恢复，历史记录不受影响。</span>
             <div class="spacer"></div>
             <button class="btn danger sm" id="btnDelete">删除此规则</button>
           </div>
@@ -188,54 +356,77 @@ tbody tr:hover{background:var(--bg)}
 
   <!-- 统计 -->
   <section id="stats">
+    <div class="page-head">
+      <h2>统计</h2>
+      <span class="count" id="chartHint"></span>
+      <div class="spacer"></div>
+      <select id="statDays" style="width:132px">
+        <option value="7">最近 7 天</option><option value="30" selected>最近 30 天</option>
+        <option value="90">最近 90 天</option><option value="365">最近 1 年</option>
+      </select>
+      <button class="btn sm" id="btnStatRefresh">刷新</button>
+    </div>
+    <div class="stats" id="statCards"></div>
+
     <div class="panel">
-      <div class="row" style="margin-bottom:16px">
-        <h2 style="margin:0;flex:1">接收统计</h2>
-        <select id="statDays" style="width:130px">
-          <option value="7">最近 7 天</option><option value="30" selected>最近 30 天</option>
-          <option value="90">最近 90 天</option><option value="365">最近 1 年</option>
-        </select>
-        <button class="btn sm" id="btnStatRefresh">刷新</button>
-      </div>
-      <div class="stats" id="statCards"></div>
-      <h2 style="font-size:14px;margin:18px 0 6px">每日接收量</h2>
-      <svg class="chart" id="chart" viewBox="0 0 1000 180" preserveAspectRatio="none"></svg>
-      <div class="grid" style="margin-top:20px">
-        <div><h2 style="font-size:14px">按规则</h2><table><tbody id="byRule"></tbody></table></div>
-        <div><h2 style="font-size:14px">按来源</h2><table><tbody id="bySender"></tbody></table></div>
-      </div>
+      <div class="chart-title"><h2>每日接收量</h2></div>
+      <svg class="chart" id="chart" viewBox="0 0 1000 200" preserveAspectRatio="none"></svg>
+    </div>
+
+    <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(280px,1fr))">
+      <div class="panel"><h2>按规则</h2><table><tbody id="byRule"></tbody></table></div>
+      <div class="panel"><h2>按来源</h2><table><tbody id="bySender"></tbody></table></div>
     </div>
   </section>
 
   <!-- 设置 -->
   <section id="settings">
+    <div class="page-head">
+      <h2>设置</h2>
+      <span class="count">改动保存后立即生效，标注「需重启」的项除外</span>
+      <div class="spacer"></div>
+      <button class="btn" id="btnReload">重载配置</button>
+      <button class="btn" id="btnTestNotify">发送测试通知</button>
+      <button class="btn primary" id="btnSettingsSave">保存设置</button>
+    </div>
     <div class="panel">
       <h2>接收端</h2>
-      <div class="grid">
+      <div class="grid fs-grid">
         <div class="field"><label>监听地址</label><input id="s_listen" type="text" disabled></div>
-        <div class="field"><label>端口（改后需重启）</label><input id="s_port" type="number"></div>
-        <div class="field"><label>Webhook 路径（改后需重启）</label><input id="s_hook_path" type="text"></div>
-        <div class="field"><label>加签 Secret（留空关闭校验）</label><input id="s_secret" type="text" placeholder="与手机端 Webhook 通道一致"></div>
+        <div class="field"><label>端口<span class="badge">需重启</span></label><input id="s_port" type="number"></div>
+        <div class="field"><label>Webhook 路径<span class="badge">需重启</span></label><input id="s_hook_path" type="text"></div>
+        <div class="field"><label>加签 Secret</label><input id="s_secret" type="text" placeholder="与手机端 Webhook 通道一致">
+          <div class="hint">留空表示关闭加签校验。</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>通知与记录</h2>
+      <div class="grid fs-grid">
         <div class="field"><label>卡片停留秒数</label><input id="s_card_seconds" type="number"></div>
         <div class="field"><label>通知中心保留上限</label><input id="s_toast_limit" type="number"></div>
-        <div class="field"><label>记录保留天数（0 = 永久）</label><input id="s_retention_days" type="number"></div>
+        <div class="field"><label>记录保留天数</label><input id="s_retention_days" type="number">
+          <div class="hint">填 0 表示永久保留。</div>
+        </div>
       </div>
-      <div class="row" style="margin-bottom:14px">
+      <div class="row" style="gap:24px">
         <label class="check"><input id="s_mask_content" type="checkbox"> 原文落盘时把数字打码</label>
         <label class="check"><input id="s_keep_unmatched" type="checkbox"> 保留未命中规则的短信</label>
         <label class="check"><input id="s_autostart" type="checkbox"> 开机自动启动</label>
       </div>
-      <div class="row">
-        <button class="btn primary" id="btnSettingsSave">保存设置</button>
-        <button class="btn" id="btnReload">重载配置</button>
-        <button class="btn" id="btnTestNotify">发送测试通知</button>
+    </div>
+
+    <div class="panel">
+      <h2>手机端 SmsForwarder</h2>
+      <p class="muted" style="margin:0 0 16px">发送通道选「Webhook」，方法 POST，<code>webParams</code> 留空（用默认 form 报文），「成功标识」填 <code>success</code>。若启用加签，Secret 需与上方一致。</p>
+      <div class="row" style="gap:8px;align-items:stretch">
+        <input id="hookUrl" type="text" readonly class="mono" style="flex:1;background:var(--panel-2)">
+        <button class="btn" id="btnCopyHook">复制</button>
       </div>
       <p class="hint" id="hookHint"></p>
     </div>
-    <div class="panel">
-      <h2>手机端 SmsForwarder 配置</h2>
-      <p class="muted" style="margin:0">发送通道选「Webhook」，请求方法 POST，<code>webParams</code> 留空（使用默认 form 报文），URL 填 <span id="hookUrl" class="code" style="font-size:13px"></span>；「成功标识」填 <code>success</code>。若启用加签，Secret 需与上方一致。</p>
-    </div>
+
   </section>
 </div>
 
@@ -283,13 +474,24 @@ async function boot(){
     STATE = await api('/api/state');
     $('statusText').textContent = '接收端在线 · 端口 ' + STATE.port;
     $('subTitle').textContent = 'v'+STATE.version+' · '+(STATE.secret_set?'已启用加签':'未启用加签')+' · '+STATE.rule_count+' 条规则';
-    $('hookUrl').textContent = hookUrl(); $('hookHint').textContent = '当前 Webhook 地址：'+hookUrl();
+    $('hookUrl').value = hookUrl(); $('hookHint').textContent = '局域网内其它设备用这个地址；手机与电脑需在同一网络。';
     $('gate').style.display='none';
     await Promise.all([loadRecent(), loadRules(), loadStats(), loadSettings()]);
   }catch(e){ showGate('无法连接接收端：'+e.message); }
 }
 
 /* ---------- 最近记录 ---------- */
+const NOTIFY_LABEL = {card:'卡片', toast:'系统通知', silent:'静默', unparsed:'未识别', none:'未命中'};
+const notifyLabel = v => NOTIFY_LABEL[v] || v || '—';
+// 一列放两行：时间在上、日期在下。跨天记录依然可辨，但不占宽度
+function stamp(t){
+  const m = String(t||'').match(/^(\d{4})-(\d{2})-(\d{2})[ T](\d{2}:\d{2})/);
+  if(!m) return {time:String(t||''), date:''};
+  const n = new Date(), p = x => String(x).padStart(2,'0');
+  const today = n.getFullYear()+'-'+p(n.getMonth()+1)+'-'+p(n.getDate());
+  // 今天的记录天天都在看，日期是噪音；跨天才补上 MM-DD
+  return {time:m[4], date:(m[1]+'-'+m[2]+'-'+m[3] === today) ? '' : m[2]+'-'+m[3]};
+}
 async function loadRecent(){
   const q = new URLSearchParams({limit:PAGE_SIZE, offset:page*PAGE_SIZE,
     sender:$('fSender').value.trim(), rule:$('fRule').value.trim(), q:$('fQuery').value.trim()});
@@ -297,32 +499,35 @@ async function loadRecent(){
   const rows = d.rows || [];
   $('rowsEmpty').style.display = rows.length ? 'none':'block';
   $('pageInfo').textContent = '第 '+(page+1)+' 页 · 本页 '+rows.length+' 条';
-  $('rows').innerHTML = rows.map(r => `<tr>
-    <td class="nowrap muted">${esc(r.local_time)}</td>
-    <td class="nowrap">${esc(r.sender)}</td>
-    <td>${r.extracted?`<span class="code">${esc(r.extracted)}</span>`:'<span class="muted">—</span>'}</td>
-    <td>${r.rule_name?`<span class="tag">${esc(r.rule_name)}</span>`:'<span class="muted">未命中</span>'}</td>
-    <td class="nowrap muted">${esc(r.notify)}</td>
-    <td class="nowrap muted">${r.copied?'已复制':(r.auto_copy?'自动复制':'')}</td>
-    <td class="muted" style="max-width:320px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${esc(r.content)}">${esc(r.content)}</td>
-    <td class="nowrap"><button class="btn sm" data-copy="${esc(r.extracted||r.content)}" data-id="${r.id}">复制</button></td>
-  </tr>`).join('');
+  $('rows').innerHTML = rows.map((r, i) => {
+    const st = stamp(r.local_time);
+    const state = r.extracted
+      ? [notifyLabel(r.notify), r.copied?'已复制':(r.auto_copy?'自动复制':'')].filter(Boolean).join(' · ')
+      : (r.notify === 'unparsed' ? '命中规则但未取到数字' : '没有规则匹配');
+    return `<tr data-i="${i}">
+      <td class="nowrap"><div class="num">${esc(st.time)}</div>${st.date?`<div class="meta num">${esc(st.date)}</div>`:''}</td>
+      <td class="nowrap">${esc(r.sender)}</td>
+      <td>${r.extracted?`<span class="code">${esc(r.extracted)}</span>`:'<span class="muted">—</span>'}</td>
+      <td>${r.rule_name?`<span class="tag">${esc(r.rule_name)}</span>`:''}<div class="meta"${r.rule_name?'':' style="margin-top:0;color:var(--muted)"'}>${esc(state)}</div></td>
+      <td class="clip" title="${esc(r.content)}">${esc(r.content)}</td>
+      <td class="nowrap"><button class="btn sm rowcopy" data-copy="${esc(r.extracted||r.content)}" data-id="${r.id}">复制</button></td>
+    </tr>
+    <tr class="detail" hidden><td colspan="6"><div class="detail-box">${esc(r.content)}</div></td></tr>`;
+  }).join('');
+
+  // 点整行展开原文：截断的原文在表格里读不全，展开是唯一不打断扫描的查看方式
+  $('rows').querySelectorAll('tr[data-i]').forEach(tr => {
+    tr.onclick = e => {
+      if (e.target.closest('button')) return;
+      const d = tr.nextElementSibling;
+      if (d && d.classList.contains('detail')) d.hidden = !d.hidden;
+    };
+  });
   $('rows').querySelectorAll('[data-copy]').forEach(b => b.onclick = async () => {
     try{ await api('/api/copy',{method:'POST',body:JSON.stringify({text:b.dataset.copy,id:Number(b.dataset.id)})}); b.textContent='已复制'; setTimeout(()=>b.textContent='复制',1400); }
     catch(e){ tip('复制失败：'+e.message); }
   });
 }
-$('btnRefresh').onclick = ()=>{page=0;loadRecent()};
-['fSender','fRule','fQuery'].forEach(id=>$(id).addEventListener('keydown',e=>{if(e.key==='Enter'){page=0;loadRecent()}}));
-$('btnPrev').onclick = ()=>{if(page>0){page--;loadRecent()}};
-$('btnNext').onclick = ()=>{page++;loadRecent()};
-$('btnCsv').onclick = async () => {
-  const q = new URLSearchParams({sender:$('fSender').value.trim(),rule:$('fRule').value.trim(),q:$('fQuery').value.trim()});
-  const r = await fetch('/api/export.csv?'+q,{headers:{'X-SmsSink-Token':TOKEN}});
-  const blob = await r.blob(), url = URL.createObjectURL(blob), a=document.createElement('a');
-  a.href=url; a.download='sms-sink-'+new Date().toISOString().slice(0,10)+'.csv'; a.click(); URL.revokeObjectURL(url); tip('CSV 已导出');
-};
-
 /* ---------- 规则 ---------- */
 const F = ['name','priority','match_from','keywords_any','keywords_all','exclude','extract','capture','notify','ttl_sec','copy_template','enabled','auto_copy','keep_history'];
 function blank(){ return {name:'新规则',enabled:true,priority:10,match_from:[],keywords_any:['验证码'],keywords_all:[],exclude:[],
@@ -330,8 +535,8 @@ function blank(){ return {name:'新规则',enabled:true,priority:10,match_from:[
 function renderRules(){
   const sorted = RULES.map((r,i)=>({r,i})).sort((a,b)=>b.r.priority-a.r.priority);
   $('ruleList').innerHTML = sorted.map(({r,i}) => `<div class="rule-item ${i===selected?'on':''}" data-i="${i}">
-    <div><b>${esc(r.name)}</b><small>P${r.priority} · ${esc(r.notify)} · ${r.auto_copy?'自动复制':'手动复制'}</small></div>
-    <span class="muted">${r.enabled?'✓':'○'}</span></div>`).join('') || '<div class="empty">暂无规则</div>';
+    <div><b>${esc(r.name)}</b><small>优先级 ${r.priority} · ${esc(notifyLabel(r.notify))} · ${r.enabled?'已启用':'已停用'}</small></div>
+    <span class="rule-state ${r.enabled?'on':''}" title="${r.enabled?'已启用':'已停用'}"></span></div>`).join('') || '<div class="empty">暂无规则</div>';
   $('ruleList').querySelectorAll('[data-i]').forEach(el=>el.onclick=()=>{selected=Number(el.dataset.i);renderRules();fillForm()});
 }
 function fillForm(){
@@ -368,21 +573,33 @@ $('btnTest').onclick = async ()=>{
 
 /* ---------- 统计 ---------- */
 function table(el, arr){
-  el.innerHTML = arr.length ? arr.map(x=>`<tr><td>${esc(x.label)}</td><td style="text-align:right"><b>${x.value}</b></td></tr>`).join('') : '<tr><td class="muted">暂无数据</td></tr>';
+  const max = Math.max(1, ...arr.map(x=>x.value));
+  el.innerHTML = arr.length ? arr.map(x=>`<tr>
+    <td>${esc(x.label)}<div class="share"><i style="width:${Math.max(2, x.value/max*100)}%"></i></div></td>
+    <td style="text-align:right" class="num"><b>${x.value}</b></td></tr>`).join('')
+    : '<tr><td class="muted" style="padding-top:16px">暂无数据</td></tr>';
 }
 async function loadStats(){
   const d = await api('/api/stats?days='+$('statDays').value);
-  $('statCards').innerHTML = [['总接收',d.total],['命中规则',d.matched],['未命中',d.unmatched],['已复制',d.copied]]
+  const rate = d.total ? Math.round(d.matched/d.total*100)+'%' : '—';
+  $('statCards').innerHTML = [['总接收',d.total],['命中规则',d.matched],['未命中',d.unmatched],['已复制',d.copied],['命中率',rate]]
     .map(([k,v])=>`<div class="stat"><span>${k}</span><b>${v}</b></div>`).join('');
   table($('byRule'), d.by_rule||[]); table($('bySender'), d.by_sender||[]);
   const days=d.by_day||[], max=Math.max(1,...days.map(x=>x.value));
-  const W=1000,H=180,pad=22,bw=days.length?Math.min(46,(W-pad*2)/days.length*.7):0;
+  $('chartHint').textContent = days.length ? `共 ${days.length} 天 · 单日峰值 ${max} 条` : '';
+  const W=1000,H=200,top=16,base=H-28,bw=days.length?Math.min(40,(W-40)/days.length*.66):0;
   let svg='';
-  days.forEach((x,i)=>{ const cx=pad+(days.length?(W-pad*2)*(i+.5)/days.length:0), h=Math.max(2,(H-40)*x.value/max);
-    svg+=`<rect class="bar" x="${cx-bw/2}" y="${H-26-h}" width="${bw}" height="${h}" rx="3"><title>${esc(x.label)}: ${x.value}</title></rect>`;
-    if(days.length<=16||i%Math.ceil(days.length/12)===0) svg+=`<text class="axis" x="${cx}" y="${H-9}" text-anchor="middle">${esc(x.label.slice(5))}</text>`;
+  // 三条基准线：0 / 中位 / 峰值。没有网格线的柱状图只能比高矮，读不出量级
+  [0,.5,1].forEach(t=>{
+    const y=base-(base-top)*t;
+    svg+=`<line class="grid-line" x1="0" y1="${y}" x2="${W}" y2="${y}"/>`;
+    svg+=`<text class="axis" x="4" y="${y-5}">${Math.round(max*t)}</text>`;
   });
-  if(!days.length) svg=`<text class="axis" x="20" y="90">暂无数据</text>`;
+  days.forEach((x,i)=>{ const cx=20+(W-40)*(i+.5)/Math.max(1,days.length), h=Math.max(2,(base-top)*x.value/max);
+    svg+=`<rect class="bar" x="${cx-bw/2}" y="${base-h}" width="${bw}" height="${h}" rx="2"><title>${esc(x.label)}: ${x.value}</title></rect>`;
+    if(days.length<=16||i%Math.ceil(days.length/12)===0) svg+=`<text class="axis" x="${cx}" y="${H-8}" text-anchor="middle">${esc(x.label.slice(5))}</text>`;
+  });
+  if(!days.length) svg=`<text class="axis" x="20" y="100">暂无数据</text>`;
   $('chart').innerHTML=svg;
 }
 $('btnStatRefresh').onclick=loadStats; $('statDays').onchange=loadStats;
@@ -395,7 +612,7 @@ async function loadSettings(){
   $('s_retention_days').value=s.retention_days; $('s_mask_content').checked=s.mask_content;
   $('s_keep_unmatched').checked=s.keep_unmatched; $('s_autostart').checked=s.autostart;
   $('s_secret').placeholder = s.secret_set ? '已配置（留空表示不修改）' : '与手机端 Webhook 通道一致';
-  $('hookUrl').textContent=hookUrl(); $('hookHint').textContent='当前 Webhook 地址：'+hookUrl();
+  $('hookUrl').value=hookUrl();
 }
 $('btnSettingsSave').onclick = async ()=>{
   const p = {port:Number($('s_port').value),hook_path:$('s_hook_path').value.trim(),
@@ -409,6 +626,11 @@ $('btnSettingsSave').onclick = async ()=>{
 };
 $('btnReload').onclick = async ()=>{ try{const d=await api('/api/reload',{method:'POST',body:'{}'});tip(d.msg);await loadSettings()}catch(e){tip(e.message)} };
 $('btnTestNotify').onclick = async ()=>{ try{const d=await api('/api/test-notify',{method:'POST',body:'{}'});tip(d.msg)}catch(e){tip(e.message)} };
+$('btnCopyHook').onclick = async ()=>{
+  const v = $('hookUrl').value;
+  try{ await navigator.clipboard.writeText(v); tip('已复制 Webhook 地址'); }
+  catch(e){ $('hookUrl').select(); document.execCommand('copy'); tip('已复制 Webhook 地址'); }
+};
 
 if(location.hash==='#recent'){document.querySelector('[data-tab=recent]').click()}
 boot();
