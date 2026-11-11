@@ -37,7 +37,7 @@ cargo build --release
 
 1. 添加发送通道 → **Webhook**
 2. 请求方法：`POST`
-3. URL：管理台「设置 → 手机端 SmsForwarder」会自动填好本机局域网地址，点「复制」粘贴过去（形如 `http://192.168.x.x:8787/hook`）。多网卡时页面会出现「本机地址」下拉框，选与手机同网段的那个
+3. URL：管理台「设置 → 手机端 SmsForwarder」会自动填好本机局域网地址，点「复制」粘贴过去（形如 `http://192.168.x.x:8787/hook`）。多网卡时页面会出现「本机地址」下拉框，选与手机同网段的那个。**手机连电脑热点时**，地址固定用热点网卡的 `http://192.168.137.1:8787/hook`——Windows 强主机模型会丢弃「从热点进、目标是 WiFi 网卡 IP」的包，填 WiFi 网卡地址（如 `192.168.31.x`）手机会一直「请求失败」
 4. `webParams` 留空，使用默认 form 报文（`from` / `content` / `timestamp` / `sign`）
 5. 「成功标识」填 `success`（服务端返回 `{"code":0,"msg":"success"}`）
 6. 可选：填写 Secret 启用加签，需与 `config.json` 的 `secret` 一致
