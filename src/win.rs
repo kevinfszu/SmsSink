@@ -66,6 +66,24 @@ pub struct MSG {
     pub lPrivate: DWORD,
 }
 
+/// 自绘按钮的绘制上下文（WM_DRAWITEM 的 lParam）
+#[repr(C)]
+pub struct DRAWITEMSTRUCT {
+    pub CtlType: UINT,
+    pub CtlID: UINT,
+    pub itemID: UINT,
+    pub itemAction: UINT,
+    pub itemState: UINT,
+    pub hwndItem: HWND,
+    pub hDC: HDC,
+    pub rcItem: RECT,
+    pub itemData: usize,
+}
+
+/// 四角圆角矩形的 GDI 区域（用于给无边框弹窗做圆角）
+pub const DWMWA_WINDOW_CORNER_PREFERENCE: DWORD = 33;
+pub const DWMWCP_ROUND: i32 = 2;
+
 #[repr(C)]
 pub struct PAINTSTRUCT {
     pub hdc: HDC,
@@ -113,6 +131,7 @@ pub const WM_DESTROY: UINT = 0x0002;
 pub const WM_PAINT: UINT = 0x000F;
 pub const WM_CLOSE: UINT = 0x0010;
 pub const WM_COMMAND: UINT = 0x0111;
+pub const WM_DRAWITEM: UINT = 0x002B;
 pub const WM_TIMER: UINT = 0x0113;
 pub const WM_RBUTTONUP: UINT = 0x0205;
 pub const WM_LBUTTONUP: UINT = 0x0202;
@@ -123,6 +142,9 @@ pub const WS_CHILD: DWORD = 0x4000_0000;
 pub const WS_VISIBLE: DWORD = 0x1000_0000;
 pub const WS_POPUP: DWORD = 0x8000_0000;
 pub const WS_TABSTOP: DWORD = 0x0001_0000;
+pub const BS_OWNERDRAW: DWORD = 0x0000_000B;
+pub const ODS_SELECTED: UINT = 0x0001;
+pub const ODS_DISABLED: UINT = 0x0004;
 pub const WS_EX_TOOLWINDOW: DWORD = 0x0000_0080;
 pub const WS_EX_TOPMOST: DWORD = 0x0000_0008;
 pub const WS_EX_NOACTIVATE: DWORD = 0x0800_0000;
@@ -161,15 +183,21 @@ pub const DT_CENTER: UINT = 0x0001;
 pub const DT_VCENTER: UINT = 0x0004;
 pub const DT_SINGLELINE: UINT = 0x0020;
 pub const DT_WORD_ELLIPSIS: UINT = 0x0004_0000;
+pub const DT_END_ELLIPSIS: UINT = 0x0000_8000;
 pub const DT_NOPREFIX: UINT = 0x0000_0800;
 pub const TRANSPARENT: i32 = 1;
 pub const FW_NORMAL: i32 = 400;
+pub const FW_SEMIBOLD: i32 = 600;
 pub const FW_BOLD: i32 = 700;
 pub const DEFAULT_CHARSET: u32 = 1;
 pub const CLEARTYPE_QUALITY: u32 = 5;
 pub const DEFAULT_PITCH: u32 = 0;
 pub const FF_DONTCARE: u32 = 0;
 pub const DEFAULT_GUI_FONT: i32 = 17;
+/// 用当前 DC 的画刷 / 画笔颜色填充与描边，免去反复创建 GDI 对象
+pub const DC_BRUSH: i32 = 18;
+pub const DC_PEN: i32 = 19;
+pub const NULL_BRUSH: i32 = 5;
 pub const CF_UNICODETEXT: UINT = 13;
 pub const GMEM_MOVEABLE: UINT = 0x0002;
 pub const COINIT_APARTMENTTHREADED: DWORD = 0x2;
@@ -278,6 +306,27 @@ extern "system" {
     pub fn SetTextColor(hdc: HDC, color: COLORREF) -> COLORREF;
     pub fn SelectObject(hdc: HDC, obj: HGDIOBJ) -> HGDIOBJ;
     pub fn DeleteObject(obj: HGDIOBJ) -> BOOL;
+    pub fn SetDCBrushColor(hdc: HDC, color: COLORREF) -> COLORREF;
+    pub fn SetDCPenColor(hdc: HDC, color: COLORREF) -> COLORREF;
+    pub fn RoundRect(
+        hdc: HDC,
+        left: i32,
+        top: i32,
+        right: i32,
+        bottom: i32,
+        width: i32,
+        height: i32,
+    ) -> BOOL;
+}
+
+#[link(name = "dwmapi")]
+extern "system" {
+    pub fn DwmSetWindowAttribute(
+        hwnd: HWND,
+        attribute: DWORD,
+        value: *const c_void,
+        size: DWORD,
+    ) -> i32;
 }
 
 #[link(name = "kernel32")]

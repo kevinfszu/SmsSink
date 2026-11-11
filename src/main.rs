@@ -26,8 +26,9 @@ fn enable_utf8_console() {
 fn usage() {
     println!(
         "用法: SmsSink.exe [选项]\n  \
-         --no-ui     无界面模式（不创建托盘/通知，仅供联调与自动化）\n  \
-         --help      显示本帮助"
+         --no-ui       无界面模式（不创建托盘/通知，仅供联调与自动化）\n  \
+         --probe-ui    跳过单实例检查，用于在正式实例运行时预览新版通知（调试用）\n  \
+         --help        显示本帮助"
     );
 }
 
@@ -41,6 +42,8 @@ fn main() {
         return;
     }
     let headless = args.iter().any(|a| a == "--no-ui");
+    // 调试用：允许与正式实例并存，便于在不打断使用的情况下预览界面
+    let probe_ui = args.iter().any(|a| a == "--probe-ui");
 
     let cfg = config::load();
     println!("{}  v{}", config::APP_DISPLAY_NAME, env!("CARGO_PKG_VERSION"));
@@ -58,7 +61,7 @@ fn main() {
         println!("  [提醒] 未配置 secret，当前不做来源校验，联调完成后请补上");
     }
 
-    if !win::claim_single_instance(config::SINGLE_INSTANCE_MUTEX) {
+    if !probe_ui && !win::claim_single_instance(config::SINGLE_INSTANCE_MUTEX) {
         eprintln!("[fatal] 已有 SmsSink 实例在运行，本进程退出");
         std::process::exit(1);
     }
