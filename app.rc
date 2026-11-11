@@ -1,0 +1,36 @@
+#pragma code_page(65001)
+
+#include <winres.h>
+
+// 主图标：与 window class / 托盘共用（ID 见 src/win.rs 的 ICON_RESOURCE_ID）
+1 ICON "assets/app.ico"
+
+VS_VERSION_INFO VERSIONINFO
+ FILEVERSION 0,2,0,0
+ PRODUCTVERSION 0,2,0,0
+ FILEFLAGSMASK 0x3fL
+ FILEFLAGS 0x0L
+ FILEOS VOS_NT_WINDOWS32
+ FILETYPE VFT_APP
+ FILESUBTYPE 0x0L
+BEGIN
+    BLOCK "StringFileInfo"
+    BEGIN
+        BLOCK "080404b0"
+        BEGIN
+            VALUE "CompanyName", "SmsSink"
+            VALUE "FileDescription", "SMS 接码器 · PC 版"
+            VALUE "FileVersion", "0.2.0.0"
+            VALUE "InternalName", "SmsSink"
+            VALUE "LegalCopyright", "Copyright (C) 2026"
+            VALUE "OriginalFilename", "SmsSink.exe"
+            VALUE "ProductName", "SMS 接码器 · PC 版"
+            VALUE "ProductVersion", "0.2.0.0"
+            VALUE "Comments", "被动接收 SmsForwarder 推送的验证码短信"
+        END
+    END
+    BLOCK "VarFileInfo"
+    BEGIN
+        VALUE "Translation", 0x804, 1200
+    END
+END

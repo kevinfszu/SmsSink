@@ -3,3 +3,6 @@ config.json
 *.db
 *.db-*
 *.log
+
+# 图标预览（用 tools/make_icon.py --preview 生成）
+tools/*.png

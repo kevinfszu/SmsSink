@@ -66,7 +66,7 @@ fn class_name() -> &'static Vec<u16> {
             cbClsExtra: 0,
             cbWndExtra: 0,
             hInstance: instance(),
-            hIcon: 0,
+            hIcon: win::app_icon(32),
             hCursor: unsafe { LoadCursorW(0, IDC_ARROW as *const u16) },
             hbrBackground: 0,
             lpszMenuName: std::ptr::null(),

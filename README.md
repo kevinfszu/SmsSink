@@ -11,14 +11,25 @@ cargo build --release
 .\target\release\SmsSink.exe
 ```
 
-首次启动会生成 `config.json`（优先 exe 同目录，回退 `%APPDATA%\SmsSink\`）和 `%APPDATA%\SmsSink\data.db`，并在控制台打印管理台地址与访问令牌：
+首次启动会生成 `config.json`（优先 exe 同目录，回退 `%APPDATA%\SmsSink\`）和 `%APPDATA%\SmsSink\data.db`，并打印管理台地址与访问令牌：
 
 ```
 管理台 http://127.0.0.1:8787/?token=<32位十六进制>
 ```
 
+**双击启动只有托盘图标，不会弹控制台窗口**：Release 以 GUI 子系统（`windows_subsystem = "windows"`）链接。启动方式决定日志去向：
+
+| 启动方式 | 控制台 | 日志 |
+|---|---|---|
+| 双击 exe / 开机自启 | 无 | 丢弃（stdout 指向 NUL） |
+| 从终端（PowerShell / cmd / Windows Terminal）启动 | 复用该终端 | 直接打印在终端里 |
+
+所以要看启动日志就用终端跑一次；日常使用双击即可。调试构建（`cargo run`）仍带控制台。
+
 托盘图标右键菜单：**打开管理台 / 最近验证码 / 发送测试通知 / 重载配置 / 开机自动启动 / 退出**。  
 开机自启写 `HKCU\Software\Microsoft\Windows\CurrentVersion\Run`，不需要管理员权限。进程用互斥体保证单实例。
+
+> Windows 11 默认把新应用的托盘图标放进「隐藏的图标」折叠区。想让它常驻任务栏，点任务栏的 `^` 把图标拖到外面即可（本机已为该路径设置 `IsPromoted=1`）。
 
 调试或自动化时用 `SmsSink.exe --no-ui`：只接收与落盘，不创建托盘、不弹通知、不写剪贴板。`--help` 查看参数。
 
@@ -114,10 +125,12 @@ SQLite 落盘于 `%APPDATA%\SmsSink\data.db`（可用 `db_path` 改），记录�
 
 ```
 Cargo.toml            依赖与 Release 优化（lto + strip）
+build.rs              编译期把图标与版本信息写入 exe 资源
+app.rc                资源脚本：主图标 ID=1、VERSIONINFO
 src/main.rs           启动编排、单实例、COM/AUMID、DB 初始化
 src/config.rs         配置结构、落盘、令牌、DB 路径
 src/app.rs            可热重载的全局状态
-src/win.rs            Win32 手写 FFI（托盘/剪贴板/注册表/自启）
+src/win.rs            Win32 手写 FFI（托盘/剪贴板/注册表/自启/控制台/图标）
 src/server.rs         TcpListener 极简 HTTP、form/JSON 解析、加签校验、路由
 src/rules.rs          优先级规则匹配、上下文正则提取、试跑
 src/event.rs          HTTP 线程 → UI 线程的事件投递与动作分发
@@ -127,5 +140,8 @@ src/tray.rs           托盘与消息泵
 src/store.rs          SQLite 落盘、统计、CSV、保留期清理
 src/admin.rs          管理台 API
 assets/index.html     管理台单页（规则 / 记录 / 统计 / 设置）
+assets/app.ico        应用图标（9 个尺寸：16～256）
+tools/make_icon.py    图标生成脚本，改设计后重跑即可
+```
 config.example.json   完整配置示例
 ```

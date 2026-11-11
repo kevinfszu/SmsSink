@@ -23,7 +23,7 @@ fn class_name() -> &'static Vec<u16> {
             cbClsExtra: 0,
             cbWndExtra: 0,
             hInstance: instance(),
-            hIcon: 0,
+            hIcon: win::tray_icon(),
             hCursor: 0,
             hbrBackground: 0,
             lpszMenuName: std::ptr::null(),
@@ -43,7 +43,7 @@ fn add_tray_icon(hwnd: HWND) {
     data.uID = 1;
     data.uFlags = NIF_MESSAGE | NIF_ICON | NIF_TIP;
     data.uCallbackMessage = event::WM_APP_TRAY;
-    data.hIcon = unsafe { LoadIconW(0, IDI_APPLICATION as *const u16) };
+    data.hIcon = win::tray_icon();
     let tip = wide(crate::config::APP_DISPLAY_NAME);
     for (i, c) in tip.iter().take(127).enumerate() {
         data.szTip[i] = *c;

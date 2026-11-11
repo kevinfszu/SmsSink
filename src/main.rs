@@ -1,3 +1,8 @@
+// 双击启动不弹控制台窗口：Release 以 GUI 子系统链接。
+// 调试构建保留控制台，方便 cargo run 直接看日志；release 从终端启动时会挂回
+// 父进程控制台（见 win::init_stdio）。
+#![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
+
 mod admin;
 mod app;
 mod card;
@@ -33,6 +38,9 @@ fn usage() {
 }
 
 fn main() {
+    // 必须在任何输出之前：GUI 子系统进程默认没有可写的 stdout
+    #[cfg(windows)]
+    win::init_stdio();
     #[cfg(windows)]
     enable_utf8_console();
 

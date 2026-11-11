@@ -208,6 +208,28 @@ pub const KEY_QUERY_VALUE: u32 = 0x1;
 pub const REG_SZ: DWORD = 1;
 pub const REG_DWORD: DWORD = 4;
 
+// 控制台挂载（GUI 子系统程序按需接上父进程的终端）
+pub const ATTACH_PARENT_PROCESS: DWORD = 0xFFFF_FFFF;
+pub const STD_OUTPUT_HANDLE: DWORD = -11i32 as DWORD;
+pub const STD_ERROR_HANDLE: DWORD = -12i32 as DWORD;
+pub const GENERIC_READ: DWORD = 0x8000_0000;
+pub const GENERIC_WRITE: DWORD = 0x4000_0000;
+pub const FILE_SHARE_READ: DWORD = 0x1;
+pub const FILE_SHARE_WRITE: DWORD = 0x2;
+pub const OPEN_EXISTING: DWORD = 3;
+pub const INVALID_HANDLE_VALUE: HANDLE = -1;
+
+// 图标
+pub const IMAGE_ICON: UINT = 1;
+pub const LR_SHARED: UINT = 0x8000;
+pub const SM_CXSMICON: i32 = 49;
+pub const SM_CYSMICON: i32 = 50;
+pub const WM_SETICON: UINT = 0x0080;
+pub const ICON_SMALL: WPARAM = 0;
+pub const ICON_BIG: WPARAM = 1;
+/// 资源脚本 app.rc 里主图标的 ID
+pub const ICON_RESOURCE_ID: usize = 1;
+
 #[link(name = "user32")]
 extern "system" {
     pub fn RegisterClassW(lpWndClass: *const WNDCLASSW) -> ATOM;
@@ -250,6 +272,16 @@ extern "system" {
     pub fn FillRect(hdc: HDC, rect: *const RECT, brush: HBRUSH) -> i32;
     pub fn DrawTextW(hdc: HDC, text: *const u16, count: i32, rect: *mut RECT, format: UINT) -> i32;
     pub fn LoadIconW(hInstance: HINSTANCE, name: *const u16) -> HICON;
+    pub fn LoadImageW(
+        hInstance: HINSTANCE,
+        name: *const u16,
+        kind: UINT,
+        cx: i32,
+        cy: i32,
+        load: UINT,
+    ) -> HANDLE;
+    pub fn GetSystemMetrics(index: i32) -> i32;
+    pub fn SendMessageW(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> LRESULT;
     pub fn LoadCursorW(hInstance: HINSTANCE, name: *const u16) -> HANDLE;
     pub fn CreatePopupMenu() -> HMENU;
     pub fn AppendMenuW(menu: HMENU, flags: UINT, id: usize, text: *const u16) -> BOOL;
@@ -341,6 +373,18 @@ extern "system" {
     pub fn GetLastError() -> DWORD;
     pub fn GetCurrentProcessId() -> DWORD;
     pub fn GetCurrentProcess() -> HANDLE;
+    pub fn AttachConsole(pid: DWORD) -> BOOL;
+    pub fn SetStdHandle(which: DWORD, handle: HANDLE) -> BOOL;
+    pub fn GetStdHandle(which: DWORD) -> HANDLE;
+    pub fn CreateFileW(
+        name: *const u16,
+        access: DWORD,
+        share: DWORD,
+        security: *mut c_void,
+        disposition: DWORD,
+        flags: DWORD,
+        template: HANDLE,
+    ) -> HANDLE;
 }
 
 #[link(name = "shell32")]
@@ -431,6 +475,85 @@ pub fn local_time() -> String {
 
 pub fn instance() -> HINSTANCE {
     unsafe { GetModuleHandleW(std::ptr::null()) }
+}
+
+/// 处理标准输出句柄。
+///
+/// 程序以 GUI 子系统（`windows_subsystem = "windows"`）编译，双击启动时不会创建
+/// 控制台窗口；但此时 `GetStdHandle` 返回空句柄，`println!` 会因写入失败而 panic。
+/// 这里分两种情况兜住：
+///   * 由终端启动 → 挂到父进程的控制台，日志直接打在那个人终端里；
+///   * 由资源管理器/开机自启启动 → 把 stdout/stderr 指向 NUL，日志静默丢弃。
+/// 必须在任何一次 `println!` 之前调用。
+pub fn init_stdio() {
+    unsafe {
+        let valid = |h: HANDLE| h != 0 && h != INVALID_HANDLE_VALUE;
+        let out_ok = valid(GetStdHandle(STD_OUTPUT_HANDLE));
+        let err_ok = valid(GetStdHandle(STD_ERROR_HANDLE));
+        // 已被终端/管道/文件重定向，保持原样
+        if out_ok && err_ok {
+            return;
+        }
+
+        let attached = AttachConsole(ATTACH_PARENT_PROCESS) != 0;
+        let (name, access) = if attached {
+            (wide("CONOUT$"), GENERIC_READ | GENERIC_WRITE)
+        } else {
+            (wide("NUL"), GENERIC_WRITE)
+        };
+        let handle = CreateFileW(
+            name.as_ptr(),
+            access,
+            FILE_SHARE_READ | FILE_SHARE_WRITE,
+            std::ptr::null_mut(),
+            OPEN_EXISTING,
+            0,
+            0,
+        );
+        if !valid(handle) {
+            return;
+        }
+        if !out_ok {
+            SetStdHandle(STD_OUTPUT_HANDLE, handle);
+        }
+        if !err_ok {
+            SetStdHandle(STD_ERROR_HANDLE, handle);
+        }
+    }
+}
+
+/// 从 exe 内嵌资源取应用图标；`size` 传 0 表示按系统图标尺寸。
+/// 使用 `LR_SHARED`，图标由系统缓存，调用方不要 DestroyIcon。
+pub fn app_icon(size: i32) -> HICON {
+    let h = unsafe {
+        LoadImageW(
+            instance(),
+            ICON_RESOURCE_ID as *const u16,
+            IMAGE_ICON,
+            size,
+            size,
+            LR_SHARED,
+        )
+    };
+    if h != 0 {
+        return h;
+    }
+    // 资源缺失时退回系统默认图标，保证托盘至少能出现
+    eprintln!("[icon] 内嵌图标资源加载失败，退回系统默认图标");
+    unsafe { LoadIconW(0, IDI_APPLICATION as *const u16) }
+}
+
+/// 通知区图标尺寸随 DPI 变化（100% 为 16px，150% 为 24px）
+pub fn tray_icon() -> HICON {
+    let size = unsafe {
+        let s = GetSystemMetrics(SM_CXSMICON);
+        if s > 0 {
+            s
+        } else {
+            16
+        }
+    };
+    app_icon(size)
 }
 
 /// 返回界面缩放系数（96 DPI = 1.0）
