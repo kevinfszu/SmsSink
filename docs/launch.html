@@ -146,6 +146,9 @@
   .micro{font-size:12px;color:var(--ink-3);margin-top:14px}
   .micro a{color:var(--ink-2);text-decoration:none;border-bottom:1px solid var(--line)}
   .micro a:hover{color:var(--blue-ink);border-bottom-color:var(--blue-ink)}
+  .src{font-size:12px;color:var(--ink-3);margin-top:4px}
+  .src a{color:var(--ink-2);text-decoration:none;border-bottom:1px solid var(--line)}
+  .src a:hover{color:var(--blue-ink);border-bottom-color:var(--blue-ink)}
 
   /* ===== 数字条 ===== */
   .stats{display:flex;gap:12px;margin:34px 0 8px}
@@ -220,6 +223,8 @@
   .pv .ic{color:var(--green)}
   .pv b{display:block;margin-top:8px;font-size:14px}
   .pv span{display:block;font-size:12.5px;color:var(--ink-2);margin-top:4px;line-height:1.65}
+  .pv span a{color:var(--blue-ink);text-decoration:none;border-bottom:1px solid var(--blue-bg);white-space:nowrap}
+  .pv span a:hover{border-bottom-color:var(--blue-ink)}
 
   /* ===== 适合谁 ===== */
   .who{display:flex;gap:16px;margin-top:18px}
@@ -255,30 +260,41 @@
   }
 
   /* ===== 顶部大纲（常驻定位） ===== */
-  .toc{position:sticky;top:0;z-index:60;
+  .toc{--gh-w:94px;position:sticky;top:0;z-index:60;
     background:rgba(245,244,240,.88);
     -webkit-backdrop-filter:saturate(180%) blur(12px);
     backdrop-filter:saturate(180%) blur(12px);
     border-bottom:1px solid transparent;transition:border-color .18s,box-shadow .18s}
   .toc.on{border-bottom-color:var(--line);box-shadow:0 1px 10px rgba(0,0,0,.035)}
-  .toc-in{max-width:880px;margin:0 auto;padding:0 28px;height:48px;
-    display:flex;align-items:center;justify-content:center;gap:2px;
-    overflow-x:auto;scrollbar-width:none}
-  .toc-in::-webkit-scrollbar{display:none}
-  .toc a{flex:0 0 auto;display:inline-flex;align-items:center;gap:7px;text-decoration:none;
+  .toc-in{max-width:880px;margin:0 auto;padding:0 16px 0 28px;height:48px;
+    display:flex;align-items:center;gap:10px}
+  .toc-links{flex:1 1 auto;min-width:0;height:100%;margin-left:var(--gh-w);
+    display:flex;align-items:center;justify-content:center;justify-content:safe center;
+    gap:2px;overflow-x:auto;scrollbar-width:none}
+  .toc-links::-webkit-scrollbar{display:none}
+  .toc-links a{flex:0 0 auto;display:inline-flex;align-items:center;gap:7px;text-decoration:none;
     font-size:12.5px;color:var(--ink-2);padding:5px 10px;border-radius:7px;
     transition:color .15s,background .15s}
-  .toc a i{font-style:normal;font-size:9.5px;font-weight:700;color:var(--ink-3);
+  .toc-links a i{font-style:normal;font-size:9.5px;font-weight:700;color:var(--ink-3);
     font-variant-numeric:tabular-nums;letter-spacing:.3px;transition:color .15s}
-  .toc a:hover{color:var(--ink);background:rgba(255,255,255,.75)}
-  .toc a.on{color:var(--ink);font-weight:600;background:var(--panel);
+  .toc-links a:hover{color:var(--ink);background:rgba(255,255,255,.75)}
+  .toc-links a.on{color:var(--ink);font-weight:600;background:var(--panel);
     box-shadow:0 1px 4px rgba(0,0,0,.07)}
-  .toc a.on i{color:var(--blue-ink)}
+  .toc-links a.on i{color:var(--blue-ink)}
+  .toc .gh{flex:0 0 auto;display:inline-flex;align-items:center;gap:6px;height:28px;padding:0 10px;
+    border:1px solid var(--line);border-radius:8px;background:var(--panel);color:var(--ink-2);
+    font-size:12px;line-height:1;text-decoration:none;
+    transition:color .15s,border-color .15s}
+  .toc .gh svg{width:15px;height:15px;display:block}
+  .toc .gh:hover{color:var(--ink);border-color:var(--ink-3)}
 
   @media (max-width:720px){
-    .toc-in{justify-content:center;padding:0 8px;gap:0}
-    .toc a{padding:5px 7px;font-size:12.5px}
-    .toc a i{display:none}
+    .toc{--gh-w:0px}
+    .toc-in{justify-content:flex-start;padding:0 10px 0 6px;gap:6px}
+    .toc-links a{padding:5px 7px;font-size:12.5px}
+    .toc-links a i{display:none}
+    .toc .gh{padding:0 7px}
+    .toc .gh span{display:none}
     .hero{padding-top:40px}
   }
 </style>
@@ -286,12 +302,15 @@
 <body>
 <nav class="toc" aria-label="页面大纲">
   <div class="toc-in">
-    <a href="#problem" data-sec="problem"><i>01</i>问题</a>
-    <a href="#real" data-sec="real"><i>02</i>真实效果</a>
-    <a href="#how" data-sec="how"><i>03</i>原理</a>
-    <a href="#privacy" data-sec="privacy"><i>04</i>隐私</a>
-    <a href="#who" data-sec="who"><i>05</i>适合谁</a>
-    <a href="#faq" data-sec="faq"><i>06</i>常见问题</a>
+    <div class="toc-links">
+      <a href="#problem" data-sec="problem"><i>01</i>问题</a>
+      <a href="#real" data-sec="real"><i>02</i>真实效果</a>
+      <a href="#how" data-sec="how"><i>03</i>原理</a>
+      <a href="#privacy" data-sec="privacy"><i>04</i>隐私</a>
+      <a href="#who" data-sec="who"><i>05</i>适合谁</a>
+      <a href="#faq" data-sec="faq"><i>06</i>常见问题</a>
+    </div>
+    <a class="gh" href="https://github.com/kevinfszu/SmsSink" target="_blank" rel="noopener" aria-label="SmsSink 源码仓库（GitHub）"><svg viewBox="0 0 16 16" aria-hidden="true" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z"/></svg><span>GitHub</span></a>
   </div>
 </nav>
 
@@ -311,6 +330,7 @@
       <a class="btn ghost" href="#how">先看它怎么工作</a>
     </div>
     <p class="micro">Windows 10 / 11 · 安卓手机 · 局域网直连 · 无需注册账号 · <a href="tutorial.html">装好后看 10 分钟教程</a></p>
+    <p class="src"><a href="https://github.com/kevinfszu/SmsSink" target="_blank" rel="noopener">源码在 GitHub（MIT）→</a></p>
 
     <div class="stats">
       <div class="stat a"><b>9 步 → 1 步</b><span>取验证码的完整动作</span></div>
@@ -380,7 +400,7 @@
     <div class="privacy">
       <div class="pv">
         <svg class="ic" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 11.5 11.5 14 15.5 9.5"/></svg>
-        <b>不经过第三方服务器</b><span>短信内容只在手机与电脑之间传输，不落到任何云服务、不注册账号、不联网上报。</span>
+        <b>不经过第三方服务器</b><span>短信内容只在手机与电脑之间传输，不落到任何云服务、不注册账号、不联网上报。这句话可以自己核对：<a href="https://github.com/kevinfszu/SmsSink" target="_blank" rel="noopener">代码 MIT 开源</a>。</span>
       </div>
       <div class="pv">
         <svg class="ic" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
@@ -453,7 +473,7 @@
 (function(){
   var nav = document.querySelector('.toc');
   if (!nav) return;
-  var links = Array.prototype.slice.call(nav.querySelectorAll('a'));
+  var links = Array.prototype.slice.call(nav.querySelectorAll('.toc-links a[data-sec]'));
   var secs = links.map(function(a){ return document.getElementById(a.getAttribute('data-sec')); });
 
   function update(){

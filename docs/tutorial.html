@@ -165,6 +165,8 @@
 
   .final{background:var(--panel);border-radius:12px;padding:22px 28px;text-align:center;
     color:var(--ink-3);font-size:13px;line-height:2;scroll-margin-top:24px}
+  .final a{color:var(--blue-ink);text-decoration:none;border-bottom:1px solid var(--blue-bg)}
+  .final a:hover{border-bottom-color:var(--blue-ink)}
   .final b{color:var(--ink-2)}
   .the-end{text-align:center;color:var(--ink-3);font-size:12.5px;margin-top:28px}
 </style>
@@ -384,6 +386,7 @@
   <div class="final" id="privacy">
     <b>数据与隐私</b>：所有短信记录只存在你电脑的 <span class="path">%APPDATA%\SmsSink\data.db</span>，配置在同目录 config.json，不联网上传。<br>
     想卸载：删掉 exe 与安装文件夹，再删除 <span class="path">%APPDATA%\SmsSink</span> 即可，不留残余。<br>
+    配不通？把现象和你看到的报错发到 <a href="https://github.com/kevinfszu/SmsSink/issues" target="_blank" rel="noopener">Issues</a>，附上日志片段会更快。<br>
     SmsSink · 短信接码器
   </div>
 
