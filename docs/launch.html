@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>SmsSink · 让手机验证码无感流转到电脑</title>
+<link rel="icon" href='data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 28 28"%3E%3Crect width="28" height="28" rx="8" fill="%2326251F"/%3E%3Cpath d="M14 7.4v8.4" stroke="%23fff" stroke-width="2" stroke-linecap="round"/%3E%3Cpath d="M10.5 12.6L14 16.1l3.5-3.5" fill="none" stroke="%23fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/%3E%3Cpath d="M8.4 19.8h11.2" stroke="%23fff" stroke-width="2" stroke-linecap="round"/%3E%3C/svg%3E'>
 <style>
   :root{
     --bg:#F5F4F0; --panel:#FFFFFF; --ink:#26251F; --ink-2:#5F5E5A; --ink-3:#8A8880;
@@ -19,8 +20,13 @@
 
   /* ===== 顶部 ===== */
   .hero{padding:72px 0 30px;text-align:center}
-  .brandline{font-size:12.5px;letter-spacing:3px;color:var(--ink-3);font-weight:600}
-  .hero h1{font-size:34px;font-weight:600;letter-spacing:.5px;line-height:1.45;margin-top:14px}
+  /* 品牌标识：图形标 + 统一大小写的字标 + 定位小字 */
+  .logo{display:inline-flex;align-items:center;gap:12px}
+  .logo .mark{flex:0 0 auto;display:block}
+  .logo .name{font-size:24px;font-weight:700;letter-spacing:.3px;color:var(--ink);line-height:1}
+  .logo .tag{font-size:12.5px;color:var(--ink-3);font-weight:500;
+    padding-left:13px;border-left:1px solid var(--line);line-height:1.4}
+  .hero h1{font-size:34px;font-weight:600;letter-spacing:.5px;line-height:1.45;margin-top:20px}
   .hero h1 em{font-style:normal;color:var(--blue)}
   .hero .sub{color:var(--ink-2);margin:16px auto 0;max-width:620px;font-size:15.5px}
   .cta{margin-top:26px;display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
@@ -139,7 +145,16 @@
 
   <!-- ========== ① 标题 + ② 一句话定位 ========== -->
   <header class="hero">
-    <div class="brandline">S M S S I N K</div>
+    <div class="logo">
+      <svg class="mark" width="30" height="30" viewBox="0 0 28 28" aria-hidden="true">
+        <rect width="28" height="28" rx="8" fill="#26251F"/>
+        <path d="M14 7.4v8.4" stroke="#fff" stroke-width="2" stroke-linecap="round"/>
+        <path d="M10.5 12.6 14 16.1l3.5-3.5" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M8.4 19.8h11.2" stroke="#fff" stroke-width="2" stroke-linecap="round"/>
+      </svg>
+      <span class="name">SmsSink</span>
+      <span class="tag">短信接码器 · PC 版</span>
+    </div>
     <h1>让手机验证码<br><em>无感流转</em>到电脑</h1>
     <p class="sub">手机收到短信的那一刻，验证码已经出现在电脑右下角。不用拿手机，不用开微信，也不经过任何第三方服务器。</p>
     <div class="cta">
@@ -201,7 +216,7 @@
   <section id="how">
     <div class="eyebrow">原理</div>
     <h2>三步，全部发生在你自己的设备之间</h2>
-    <p class="lead">手机装一个开源的 SmsForwarder 负责转发，电脑跑一个单文件 exe 负责接。两端在同一个 WiFi 里直接对话，没有中间人。</p>
+    <p class="lead">手机装一个开源的 SmsForwarder 负责转发，电脑跑 <b>SmsSink</b> 这个单文件 exe 负责接。两端在同一个 WiFi 里直接对话，没有中间人。</p>
     <div class="steps3">
       <div class="s3"><span class="n">1</span><b>手机收到短信</b><span>SmsForwarder 识别出验证码，按你配的规则提取</span></div>
       <div class="s3"><span class="n">2</span><b>经 WiFi 直发电脑</b><span>POST 到你电脑的局域网地址，不经云端</span></div>
