@@ -4,7 +4,9 @@ use std::fs;
 use std::path::PathBuf;
 use std::sync::OnceLock;
 
-pub const APP_DISPLAY_NAME: &str = "SMS 接码器 · PC 版";
+/// 唯一对外作品名。托盘提示、Toast 标题、窗口标题、API 的 app 字段都用它，
+/// 不再带「PC 版」「接码器」这类后缀——那些属于品类描述，写在副标题里。
+pub const APP_DISPLAY_NAME: &str = "SmsSink";
 pub const APP_ID: &str = "SmsSink";
 pub const AUMID: &str = "SmsSink.Desktop";
 pub const SINGLE_INSTANCE_MUTEX: &str = "SmsSink.SingleInstance.v1";

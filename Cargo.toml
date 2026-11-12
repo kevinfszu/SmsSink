@@ -2,7 +2,7 @@
 name = "sms-sink-pc"
 version = "0.2.0"
 edition = "2021"
-description = "SMS 接码器 · PC 版 — 被动接收 SmsForwarder 推送，按规则提取并通知"
+description = "SmsSink — 被动接收 SmsForwarder 推送，按规则提取验证码并通知"
 build = "build.rs"
 
 [[bin]]

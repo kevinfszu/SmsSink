@@ -1,6 +1,6 @@
-# SMS 接码器 · PC 版 / SmsSink
+# SmsSink
 
-Windows 11 上被动接收 [SmsForwarder](https://github.com/pppscn/SmsForwarder) 推送的短信，按自定义规则提取内容（主要是数字验证码），并及时通知。手机与电脑在同一局域网时直连，无需任何中转服务或云函数。
+一款 Windows 上的短信接码器：被动接收 [SmsForwarder](https://github.com/pppscn/SmsForwarder) 推送的短信，按自定义规则提取内容（主要是数字验证码），并及时通知。手机与电脑在同一局域网时直连，无需任何中转服务或云函数。常驻托盘，作品名统一为 **SmsSink**。
 
 常驻形态是**托盘 + 阻塞式消息泵**：空闲时 CPU 为 0，无常驻异步运行时、无 WebView2、无浏览器进程。管理台是 `127.0.0.1` 上的本地网页，用系统默认浏览器打开。
 
@@ -55,7 +55,7 @@ Windows 默认拦截入站连接，需以管理员身份添加一条入站规则
 
 ```powershell
 New-NetFirewallRule `
-  -DisplayName "SMS 接码器 · 局域网入站" `
+  -DisplayName "SmsSink · 局域网入站" `
   -Direction Inbound -Protocol TCP -LocalPort 8787 `
   -Action Allow -Profile Any -RemoteAddress LocalSubnet `
   -Program "E:\001-Program\SmsSink\target\release\SmsSink.exe"
@@ -64,10 +64,10 @@ New-NetFirewallRule `
 > **不要用 `-Profile Private`。** 电脑开启「移动热点」让手机直连时，热点虚拟网卡（`Microsoft Wi-Fi Direct Virtual Adapter`，IP 通常是 `192.168.137.1`）属于**公用网络**，专用网络规则不会对它生效，手机端只会得到「请求失败：网络连接超时」。已建的规则可就地修正：
 >
 > ```powershell
-> Set-NetFirewallRule -DisplayName "SMS 接码器 · 局域网入站" -Profile Any -RemoteAddress LocalSubnet
+> Set-NetFirewallRule -DisplayName "SmsSink · 局域网入站" -Profile Any -RemoteAddress LocalSubnet
 > ```
 >
-> 也可直接双击 `scripts\fix-firewall.cmd`（自动申请管理员权限，并清理指向旧目录的失效规则）。
+> 也可直接双击 `scripts\fix-firewall.cmd`（自动申请管理员权限，并清理指向旧目录的失效规则）。旧版本建的规则名是「SMS 接码器 · 局域网入站」，脚本会自动把它重命名为「SmsSink · 局域网入站」，不会留下两份。
 
 ### 连不上时先做连通性自检
 
@@ -114,7 +114,7 @@ New-NetFirewallRule `
 
 ## 托盘与回执
 
-托盘图标左键单击 = 打开管理台，右键或双击 = 菜单。菜单结构固定为：状态行（`监听 8787 · 今日 N 条 · 最后 HH:MM`，灰显）→ 最近验证码（最近 3 条，选中即复制）→ 打开管理台 / 使用教程 / 产品介绍 / 发送测试通知 → 设置（开机自动启动、重载配置）→ 退出。鼠标悬停在托盘图标上会显示 `SMS 接码器 · PC 版 · 监听 8787 · 今日 N 条 · 最后 HH:MM`——应用名在前，状态在后。
+托盘图标左键单击 = 打开管理台，右键或双击 = 菜单。菜单结构固定为：状态行（`监听 8787 · 今日 N 条 · 最后 HH:MM`，灰显）→ 最近验证码（最近 3 条，选中即复制）→ 打开管理台 / 使用教程 / 产品介绍 / 发送测试通知 → 设置（开机自动启动、重载配置）→ 退出。鼠标悬停在托盘图标上会显示 `SmsSink · 监听 8787 · 今日 N 条 · 最后 HH:MM`——应用名在前，状态在后。
 
 Win32 的托盘气泡（`NIF_INFO`）在没在开始菜单注册身份的应用里会被系统直接吞掉（实测消息送达、屏幕上什么都没有），所以程序自带一个单行提示条 `src/hint.rs`（40 逻辑像素高、2.6 秒自动消失、不抢焦点）作为所有菜单动作的可见回执，例如 `配置已重载 · 3 条规则生效`、`已复制 633382`。程序已在运行时再次双击 exe，新进程会把请求转给常驻实例，由它弹一条 `SmsSink 已在运行 · 右键托盘图标操作`，而不是静默退出。
 

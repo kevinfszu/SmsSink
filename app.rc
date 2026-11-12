@@ -23,12 +23,12 @@ BEGIN
         BLOCK "080404b0"
         BEGIN
             VALUE "CompanyName", "SmsSink"
-            VALUE "FileDescription", "SMS 接码器 · PC 版"
+            VALUE "FileDescription", "SmsSink"
             VALUE "FileVersion", "0.2.0.0"
             VALUE "InternalName", "SmsSink"
             VALUE "LegalCopyright", "Copyright (C) 2026"
             VALUE "OriginalFilename", "SmsSink.exe"
-            VALUE "ProductName", "SMS 接码器 · PC 版"
+            VALUE "ProductName", "SmsSink"
             VALUE "ProductVersion", "0.2.0.0"
             VALUE "Comments", "被动接收 SmsForwarder 推送的验证码短信"
         END

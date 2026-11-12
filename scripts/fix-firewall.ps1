@@ -21,11 +21,19 @@ if (-not $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administra
 }
 
 $exe = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..\target\release\SmsSink.exe'))
-$name = 'SMS 接码器 · 局域网入站'
+$name = 'SmsSink · 局域网入站'
 
 Write-Host "目标程序: $exe" -ForegroundColor Cyan
 if (-not (Test-Path -LiteralPath $exe)) {
     throw "找不到 $exe`n请先在项目根目录执行 cargo build --release"
+}
+
+# 旧版规则名（改名前的作品名）：就地重命名，避免同一条放行规则留下两份
+$legacy = 'SMS 接码器 · 局域网入站'
+$legacyRules = Get-NetFirewallRule -DisplayName $legacy -ErrorAction SilentlyContinue
+if ($legacyRules) {
+    $legacyRules | Set-NetFirewallRule -NewDisplayName $name -ErrorAction SilentlyContinue
+    Write-Host '已把旧规则名迁移为 SmsSink · 局域网入站' -ForegroundColor DarkGray
 }
 
 $existing = Get-NetFirewallRule -DisplayName $name -ErrorAction SilentlyContinue
