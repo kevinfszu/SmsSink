@@ -19,7 +19,7 @@
   .wrap{max-width:880px;margin:0 auto;padding:0 28px}
 
   /* ===== 顶部 ===== */
-  .hero{padding:72px 0 30px;text-align:center}
+  .hero{padding:52px 0 30px;text-align:center}
   /* 品牌标识：图形标 + 统一大小写的字标 + 定位小字 */
   .logo{display:inline-flex;align-items:center;gap:12px}
   .logo .mark{flex:0 0 auto;display:block}
@@ -47,7 +47,7 @@
   .stat.a b{color:var(--amber)}
 
   /* ===== 区块 ===== */
-  section{margin-top:64px}
+  section{margin-top:64px;scroll-margin-top:64px}
   .eyebrow{font-size:11px;font-weight:700;letter-spacing:2px;color:var(--blue)}
   h2{font-size:22px;font-weight:600;margin-top:6px}
   .lead{color:var(--ink-2);margin-top:10px}
@@ -126,7 +126,7 @@
   .q span{display:block;font-size:13.5px;color:var(--ink-2);margin-top:4px}
 
   /* ===== 收尾 ===== */
-  .end{margin:64px 0 0;text-align:center;background:var(--panel);border-radius:14px;
+  .end{margin:64px 0 0;scroll-margin-top:64px;text-align:center;background:var(--panel);border-radius:14px;
     padding:40px 28px;box-shadow:0 1px 3px rgba(0,0,0,.05)}
   .end h2{font-size:20px}
   .end p{color:var(--ink-2);font-size:13.5px;margin-top:8px}
@@ -138,9 +138,48 @@
     .hero h1{font-size:26px}
     .stats,.steps3,.privacy,.who{flex-direction:column}
   }
+
+  /* ===== 顶部大纲（常驻定位） ===== */
+  .toc{position:sticky;top:0;z-index:60;
+    background:rgba(245,244,240,.88);
+    -webkit-backdrop-filter:saturate(180%) blur(12px);
+    backdrop-filter:saturate(180%) blur(12px);
+    border-bottom:1px solid transparent;transition:border-color .18s,box-shadow .18s}
+  .toc.on{border-bottom-color:var(--line);box-shadow:0 1px 10px rgba(0,0,0,.035)}
+  .toc-in{max-width:880px;margin:0 auto;padding:0 28px;height:48px;
+    display:flex;align-items:center;justify-content:center;gap:2px;
+    overflow-x:auto;scrollbar-width:none}
+  .toc-in::-webkit-scrollbar{display:none}
+  .toc a{flex:0 0 auto;display:inline-flex;align-items:center;gap:7px;text-decoration:none;
+    font-size:12.5px;color:var(--ink-2);padding:5px 10px;border-radius:7px;
+    transition:color .15s,background .15s}
+  .toc a i{font-style:normal;font-size:9.5px;font-weight:700;color:var(--ink-3);
+    font-variant-numeric:tabular-nums;letter-spacing:.3px;transition:color .15s}
+  .toc a:hover{color:var(--ink);background:rgba(255,255,255,.75)}
+  .toc a.on{color:var(--ink);font-weight:600;background:var(--panel);
+    box-shadow:0 1px 4px rgba(0,0,0,.07)}
+  .toc a.on i{color:var(--blue)}
+
+  @media (max-width:720px){
+    .toc-in{justify-content:center;padding:0 8px;gap:0}
+    .toc a{padding:5px 7px;font-size:12.5px}
+    .toc a i{display:none}
+    .hero{padding-top:40px}
+  }
 </style>
 </head>
 <body>
+<nav class="toc" aria-label="页面大纲">
+  <div class="toc-in">
+    <a href="#problem" data-sec="problem"><i>01</i>问题</a>
+    <a href="#real" data-sec="real"><i>02</i>真实效果</a>
+    <a href="#how" data-sec="how"><i>03</i>原理</a>
+    <a href="#privacy" data-sec="privacy"><i>04</i>隐私</a>
+    <a href="#who" data-sec="who"><i>05</i>适合谁</a>
+    <a href="#faq" data-sec="faq"><i>06</i>常见问题</a>
+  </div>
+</nav>
+
 <div class="wrap">
 
   <!-- ========== ① 标题 + ② 一句话定位 ========== -->
@@ -166,7 +205,7 @@
   </header>
 
   <!-- ========== ③ SCQA 痛点 + 对比锚点 ========== -->
-  <section>
+  <section id="problem">
     <div class="eyebrow">问题</div>
     <h2>每次验证码，都要人肉搬运一遍</h2>
     <p class="lead">在电脑上注册、登录、绑卡，验证码永远发到手机上。你只有三条路，条条都要放下手上正在干的事。</p>
@@ -193,7 +232,7 @@
   </section>
 
   <!-- ========== ④ 证明 ========== -->
-  <section>
+  <section id="real">
     <div class="eyebrow">真实效果</div>
     <h2>不是概念图，是刚刚拍下的屏幕</h2>
     <p class="lead">电脑上打开 139 邮箱网页、点「发送验证码」：短信刚发出，右下角的卡片已经到了——来源、验证码、时间都在，点「复制」回去粘贴即可。</p>
@@ -220,7 +259,7 @@
   </section>
 
   <!-- ========== 隐私 ========== -->
-  <section>
+  <section id="privacy">
     <div class="eyebrow">隐私</div>
     <h2>你的验证码，只有你和你自己的电脑知道</h2>
     <div class="privacy">
@@ -240,7 +279,7 @@
   </section>
 
   <!-- ========== 适合谁 ========== -->
-  <section>
+  <section id="who">
     <div class="eyebrow">适合谁</div>
     <h2>它解决一个很具体的问题，也很诚实地承认边界</h2>
     <div class="who">
@@ -265,7 +304,7 @@
   </section>
 
   <!-- ========== FAQ ========== -->
-  <section>
+  <section id="faq">
     <div class="eyebrow">常见问题</div>
     <h2>上手前，你可能想知道</h2>
     <div class="faq">
@@ -291,5 +330,36 @@
   </footer>
 
 </div>
+
+<script>
+(function(){
+  var nav = document.querySelector('.toc');
+  if (!nav) return;
+  var links = Array.prototype.slice.call(nav.querySelectorAll('a'));
+  var secs = links.map(function(a){ return document.getElementById(a.getAttribute('data-sec')); });
+
+  function update(){
+    var probe = window.scrollY + 130;   // 视口上方 130px 作为判定线
+    var idx = -1;
+    for (var i = 0; i < secs.length; i++){
+      if (secs[i] && secs[i].getBoundingClientRect().top + window.scrollY <= probe) idx = i;
+    }
+    if (window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 4) {
+      idx = secs.length - 1;
+    }
+    links.forEach(function(a, i){ a.classList.toggle('on', i === idx); });
+    nav.classList.toggle('on', window.scrollY > 6);
+  }
+
+  var pending = false;
+  window.addEventListener('scroll', function(){
+    if (pending) return;
+    pending = true;
+    requestAnimationFrame(function(){ update(); pending = false; });
+  }, {passive:true});
+  window.addEventListener('resize', update);
+  update();
+})();
+</script>
 </body>
 </html>
