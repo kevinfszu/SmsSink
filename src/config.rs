@@ -171,7 +171,10 @@ fn default_write_path() -> PathBuf {
 }
 
 pub fn config_path() -> PathBuf {
-    ACTIVE_PATH.get().cloned().unwrap_or_else(default_write_path)
+    ACTIVE_PATH
+        .get()
+        .cloned()
+        .unwrap_or_else(default_write_path)
 }
 
 pub fn save(cfg: &Config) -> std::io::Result<()> {

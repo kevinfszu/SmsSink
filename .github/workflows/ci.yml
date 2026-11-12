@@ -1,0 +1,47 @@
+name: CI
+
+# main 分支与非文档改动的快速校验：格式、lint、单元测试。
+# 不产出任何产物；出包仍然只走 release.yml（打 tag 触发）。
+on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - 'docs/**'          # 官网页面由 pages.yml 管，改 HTML 不必重编译
+      - '**/*.md'
+      - 'LICENSE'
+      - 'dist/**'
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# 同一分支连续推送时，取消上一次还没跑完的任务
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: windows-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+
+      - uses: Swatinem/rust-cache@v2
+
+      - name: 格式检查
+        run: cargo fmt --all -- --check
+
+      # 目前仍有约 37 条警告，多数是手写 Win32 FFI 的类型名（HWND/MSG/POINT…），
+      # 与 Windows 头文件保持一致更好读，不建议改名。
+      # 因此这一步只做提示、不阻断；等警告清零后再改成 `-- -D warnings`。
+      - name: Clippy
+        run: cargo clippy --all-targets --locked
+
+      - name: 单元测试
+        run: cargo test --locked
