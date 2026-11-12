@@ -1,0 +1,121 @@
+name: Release
+
+# 打 tag（v0.2.0）即发布；手动触发只构建并留档，不发 Release
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: '版本号（不含 v 前缀），留空则取 Cargo.toml'
+        required: false
+        default: ''
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 解析版本并校验一致性
+        id: ver
+        shell: pwsh
+        run: |
+          $cargo = (Select-String -Path Cargo.toml -Pattern '^version\s*=\s*"([^"]+)"').Matches[0].Groups[1].Value
+          if ($env:GITHUB_REF -like 'refs/tags/*') {
+              $tag = $env:GITHUB_REF_NAME -replace '^v', ''
+              if ($tag -ne $cargo) {
+                  throw "tag v$tag 与 Cargo.toml 的 $cargo 不一致；先改 Cargo.toml 再打 tag"
+              }
+              $v = $tag
+          } else {
+              $v = "${{ github.event.inputs.version }}".Trim()
+              if (-not $v) { $v = $cargo }
+          }
+          "version=$v" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+          Write-Host "本次发布版本: $v"
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: Swatinem/rust-cache@v2
+
+      - name: 单元测试
+        run: cargo test --release --locked
+
+      - name: 安装 Inno Setup
+        run: choco install innosetup --no-progress -y
+
+      - name: 构建安装包
+        shell: pwsh
+        run: ./installer/build.ps1 -Version ${{ steps.ver.outputs.version }}
+
+      - name: 打包便携版
+        shell: pwsh
+        run: |
+          $v = "${{ steps.ver.outputs.version }}"
+          $stage = "dist/portable"
+          if (Test-Path $stage) { Remove-Item $stage -Recurse -Force }
+          New-Item -ItemType Directory -Force -Path $stage | Out-Null
+          Copy-Item target/release/SmsSink.exe $stage
+          Copy-Item README.md, config.example.json $stage
+          Copy-Item scripts/fix-firewall.ps1, scripts/fix-firewall.cmd $stage
+          Compress-Archive -Path "$stage/*" -DestinationPath "dist/SmsSink-$v-portable.zip" -Force
+          Write-Host "portable.zip 已生成"
+
+      - name: 校验产物
+        shell: pwsh
+        run: |
+          $v = "${{ steps.ver.outputs.version }}"
+          Get-ChildItem dist -File | ForEach-Object { "  {0,-34} {1:N2} MB" -f $_.Name, ($_.Length / 1MB) }
+          $setup = "dist/SmsSink-$v-setup.exe"
+          $zip = "dist/SmsSink-$v-portable.zip"
+          foreach ($f in @($setup, $zip)) {
+              if (-not (Test-Path $f)) { throw "缺少产物: $f" }
+              if ((Get-Item $f).Length -lt 1MB) { throw "产物异常偏小: $f" }
+          }
+
+      - name: 留档构建产物（手动触发时）
+        if: github.event_name == 'workflow_dispatch'
+        uses: actions/upload-artifact@v4
+        with:
+          name: SmsSink-${{ steps.ver.outputs.version }}
+          path: |
+            dist/*.exe
+            dist/*.zip
+          retention-days: 30
+
+      - name: 发布 GitHub Release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          name: SmsSink ${{ steps.ver.outputs.version }}
+          files: |
+            dist/SmsSink-${{ steps.ver.outputs.version }}-setup.exe
+            dist/SmsSink-${{ steps.ver.outputs.version }}-portable.zip
+          generate_release_notes: true
+          draft: false
+          prerelease: false
+          body: |
+            ## 安装
+
+            下载 `SmsSink-${{ steps.ver.outputs.version }}-setup.exe`，双击即可，**不需要管理员权限**。
+
+            - 安装位置：`%LOCALAPPDATA%\Programs\SmsSink`
+            - 配置与短信记录：`%APPDATA%\SmsSink`（卸载时可选择保留）
+            - 也可以下载 `-portable.zip`，解压后直接运行，配置留在 exe 旁边
+
+            ## 首次使用
+
+            1. 托盘图标左键单击，打开管理台
+            2. 按《使用教程》配置手机端 SmsForwarder 的 Webhook 地址
+            3. 手机连不上电脑时，运行开始菜单里的「修复防火墙」
+
+            > 本版本未做代码签名，Windows SmartScreen 可能提示「未知发布者」，点「更多信息 → 仍要运行」即可。

@@ -4,16 +4,38 @@
 
 常驻形态是**托盘 + 阻塞式消息泵**：空闲时 CPU 为 0，无常驻异步运行时、无 WebView2、无浏览器进程。管理台是 `127.0.0.1` 上的本地网页，用系统默认浏览器打开。
 
-## 快速开始
+## 安装
 
-> 📖 **新手用户**：请看图文教程 [docs/tutorial.html](docs/tutorial.html)（单文件、图片内嵌，可直接发给朋友或在浏览器打开），10 分钟完成手机↔电脑全链路配置。
+**普通用户**：到 [Releases](https://github.com/kevinfszu/SmsSink/releases) 下载 `SmsSink-x.y.z-setup.exe`，双击安装。
+
+- 装到 `%LOCALAPPDATA%\Programs\SmsSink`，**全程不需要管理员权限**，卸载同样不需要
+- 安装时可选「开机自动启动」（默认勾选）和「放行局域网 8787 端口」（需要一次管理员授权；跳过也行，手机连不上电脑时再从开始菜单运行「修复防火墙」）
+- 卸载时会询问是否保留配置与短信记录，保留在 `%APPDATA%\SmsSink`
+- 未做代码签名，SmartScreen 可能提示「未知发布者」，点「更多信息 → 仍要运行」即可
+
+**免安装**：下载 `-portable.zip`，解压后直接运行。便携版只要 exe 旁边存在 `config.json` 就继续用它，程序和配置可以整体搬走。
+
+**从源码构建**：
 
 ```powershell
 cargo build --release
 .\target\release\SmsSink.exe
 ```
 
-首次启动会生成 `config.json`（优先 exe 同目录，回退 `%APPDATA%\SmsSink\`）和 `%APPDATA%\SmsSink\data.db`，并打印管理台地址与访问令牌：
+打成安装包（需要 [Inno Setup 6](https://jrsoftware.org/isdl.php)）：
+
+```powershell
+powershell -ExecutionPolicy Bypass -File installer\build.ps1
+# 产物：dist\SmsSink-<版本>-setup.exe
+```
+
+版本号只在 `Cargo.toml` 里维护，exe 的资源版本和安装包版本都从它推导。推一个 `v*` 标签（如 `v0.2.0`）就会触发 GitHub Actions 自动构建并发布 Release；tag 与 `Cargo.toml` 不一致时流水线会直接失败。
+
+## 快速开始
+
+> 📖 **新手用户**：请看图文教程 [docs/tutorial.html](docs/tutorial.html)（单文件、图片内嵌，可直接发给朋友或在浏览器打开），10 分钟完成手机↔电脑全链路配置。
+
+首次启动会在 `%APPDATA%\SmsSink\config.json` 生成配置（便携版则写在 exe 旁边的 `config.json`），短信记录在 `%APPDATA%\SmsSink\data.db`，并打印管理台地址与访问令牌：
 
 ```
 管理台 http://127.0.0.1:8787/?token=<32位十六进制>

@@ -6,3 +6,6 @@ config.json
 
 # 图标预览（用 tools/make_icon.py --preview 生成）
 tools/*.png
+
+# 安装包与便携版产物（installer/build.ps1 生成）
+/dist
