@@ -1,0 +1,53 @@
+name: Pages
+
+# 把 docs/ 里的两个单文件页面发布成静态站点：
+#   docs/launch.html   -> /          （产品落地页）
+#   docs/tutorial.html -> /tutorial.html
+# 只在 docs/ 或本工作流变化时触发，改代码不会重复部署。
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "docs/launch.html"
+      - "docs/tutorial.html"
+      - ".github/workflows/pages.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 组装站点
+        run: |
+          set -euo pipefail
+          mkdir -p _site
+          # 落地页作为站点根，tutorial.html 保持同名以便页面内的相对链接继续生效
+          cp docs/launch.html _site/index.html
+          cp docs/tutorial.html _site/tutorial.html
+          # 不跑 Jekyll，避免下划线开头的文件被忽略
+          touch _site/.nojekyll
+          ls -lh _site
+
+      - uses: actions/configure-pages@v5
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+      - id: deploy
+        uses: actions/deploy-pages@v4
