@@ -20,7 +20,7 @@
 - **You need both halves.** SmsSink is the receiving end only: install SmsForwarder (Android) on the phone to forward the messages. SmsSink on its own receives nothing.
 - **Windows 10 / 11 + Android only.** iPhone is not supported, and both devices have to be on the same network.
 - **Install:** take `SmsSink-x.y.z-setup.exe` from [Releases](https://github.com/kevinfszu/SmsSink/releases/latest) — per-user, no admin rights — then add a SmsForwarder **Webhook** channel pointing at `http://<your-pc-ip>:8787/hook`. The admin UI fills that address in for you.
-- **Build:** `cargo build --release`, or `installer\build.ps1` for the setup package (needs Inno Setup 6). MIT licensed.
+- **Build:** `cargo build --release`, or `installer\build.ps1` for the setup package (needs Inno Setup 6). MIT licensed. Architecture, threading rules and release steps are in [DEVELOPMENT.md](DEVELOPMENT.md) (Chinese).
 
 Docs: [project site](https://kevinfszu.github.io/SmsSink/) · [10-minute walkthrough](https://kevinfszu.github.io/SmsSink/tutorial.html) (Chinese). The rest of this README is in Chinese.
 
@@ -192,6 +192,7 @@ SQLite 落盘于 `%APPDATA%\SmsSink\data.db`（可用 `db_path` 改），记录�
 ## 目录
 
 ```
+DEVELOPMENT.md        开发与维护指引：架构、线程模型、改动落点、调试与发布流程
 Cargo.toml            依赖与 Release 优化（lto + strip）
 build.rs              编译期把图标与版本信息写入 exe 资源
 app.rc                资源脚本：主图标 ID=1、manifest、VERSIONINFO
