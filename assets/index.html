@@ -12,7 +12,8 @@
   --panel:#fff; --panel-2:#fafbfc;
   --line:#ebedf0; --line-strong:#dde1e7;
   --text:#15181d; --text-2:#414852; --muted:#6e7480; --faint:#9aa1ad;
-  --accent:#2563eb; --accent-hover:#1d4ed8; --accent-soft:#eff4ff;
+  --accent:#0377fc; --accent-ink:#0560c8; --accent-hover:#0449a8; --accent-soft:#e9f2ff;
+  --on-accent:#ffffff;
   --ok:#059669; --ok-soft:#ecfdf5;
   --warn:#b45309; --warn-soft:#fffbeb;
   --danger:#dc2626; --danger-soft:#fef2f2;
@@ -30,7 +31,8 @@
     --panel:#16191f; --panel-2:#1b1f26;
     --line:#272d37; --line-strong:#333b47;
     --text:#eef0f4; --text-2:#c3c8d2; --muted:#98a0ad; --faint:#6b7482;
-    --accent:#7aa2ff; --accent-hover:#93b4ff; --accent-soft:#1b2436;
+    --accent:#4e9bff; --accent-ink:#8fbaff; --accent-hover:#2f86ef; --accent-soft:#1b2436;
+    --on-accent:#0b1220;
     --ok:#34d399; --ok-soft:#11291f;
     --warn:#fbbf24; --warn-soft:#2a2110;
     --danger:#f87171; --danger-soft:#2b1618;
@@ -46,7 +48,7 @@ body{
   font:14px/1.55 "Microsoft YaHei UI","Microsoft YaHei","Segoe UI",system-ui,sans-serif;
   -webkit-font-smoothing:antialiased;
 }
-a{color:var(--accent);text-decoration:none}
+a{color:var(--accent-ink);text-decoration:none}
 a:hover{text-decoration:underline}
 .wrap{max-width:1080px;margin:0 auto;padding:28px 24px 72px}
 :focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:4px}
@@ -128,7 +130,7 @@ label{display:block;font-size:12px;color:var(--muted);margin-bottom:6px}
 }
 .btn:hover{background:var(--panel-2);border-color:var(--faint);color:var(--text)}
 .btn:active{transform:translateY(.5px)}
-.btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+.btn.primary{background:var(--accent-ink);border-color:var(--accent-ink);color:var(--on-accent)}
 .btn.primary:hover{background:var(--accent-hover);border-color:var(--accent-hover);color:#fff}
 .btn.sm{height:28px;padding:0 10px;font-size:12px}
 .btn.ghost{background:transparent;border-color:transparent;color:var(--muted)}
@@ -163,7 +165,7 @@ tbody tr.detail:hover td{background:var(--panel-2)}
   background:var(--code-bg);padding:3px 8px;border-radius:6px;display:inline-block;
   font-variant-numeric:tabular-nums;
 }
-.tag{display:inline-block;padding:2px 8px;border-radius:6px;background:var(--accent-soft);color:var(--accent);font-size:12px;font-weight:500}
+.tag{display:inline-block;padding:2px 8px;border-radius:6px;background:var(--accent-soft);color:var(--accent-ink);font-size:12px;font-weight:500}
 .tag.gray{background:var(--panel-2);color:var(--muted);font-weight:400}
 .tag.ok{background:var(--ok-soft);color:var(--ok)}
 .badge{display:inline-block;font-size:12px;padding:1px 6px;border-radius:4px;background:var(--warn-soft);color:var(--warn);margin-left:6px;vertical-align:1px;font-weight:500}
@@ -206,7 +208,7 @@ code{font-family:ui-monospace,"Cascadia Mono",Consolas,monospace;font-size:.9em;
 .rule-item+.rule-item{box-shadow:inset 0 1px 0 var(--line)}
 .rule-item:hover{background:var(--panel-2)}
 .rule-item.on{background:var(--accent-soft);border-left-color:var(--accent)}
-.rule-item.on .rule-name{color:var(--accent)}
+.rule-item.on .rule-name{color:var(--accent-ink)}
 .rule-name{font-weight:500;font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .rule-item small{color:var(--muted);display:block;font-size:12px;margin-top:2px;font-variant-numeric:tabular-nums}
 .rule-state{flex:none;width:6px;height:6px;border-radius:50%;background:var(--line-strong)}

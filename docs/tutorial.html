@@ -7,7 +7,7 @@
 <style>
   :root{
     --bg:#F5F4F0; --panel:#FFFFFF; --ink:#26251F; --ink-2:#5F5E5A; --ink-3:#8A8880;
-    --line:#E4E2DA; --blue:#2563EB; --blue-bg:#EFF4FE; --green:#15803D; --green-bg:#EEF7F0;
+    --line:#E4E2DA; --blue:#0377FC; --blue-ink:#0560C8; --blue-bg:#E9F2FF; --green:#15803D; --green-bg:#EEF7F0;
     --amber:#92610E; --amber-bg:#FBF3E4; --toc-bg:#FBFAF7;
   }
   *{margin:0;padding:0;box-sizing:border-box}
@@ -28,10 +28,10 @@
   .toc a{display:block;font-size:12.8px;color:var(--ink-2);padding:5px 10px;border-radius:6px;
     text-decoration:none;line-height:1.5}
   .toc a:hover{background:#F1EFE8;color:var(--ink)}
-  .toc a.act{color:var(--blue);background:var(--blue-bg);font-weight:600}
+  .toc a.act{color:var(--blue-ink);background:var(--blue-bg);font-weight:600}
   .toc a .n{display:inline-block;width:16px;height:16px;border-radius:4px;background:#ECEAE2;
     color:var(--ink-2);font-size:10.5px;text-align:center;line-height:16px;margin-right:7px;font-weight:600}
-  .toc a.act .n{background:var(--blue);color:#fff}
+  .toc a.act .n{background:var(--blue-ink);color:#fff}
   .main{margin-left:236px}
   @media (max-width:1080px){.toc{display:none}.main{margin-left:0}}
 
@@ -51,7 +51,7 @@
   /* ===== 分部标题 ===== */
   .part{margin:60px 0 18px;display:flex;align-items:center;gap:14px}
   .part .pn{flex:0 0 auto;font-size:11px;font-weight:700;letter-spacing:2px;color:#fff;
-    background:var(--blue);border-radius:6px;padding:3px 10px}
+    background:var(--blue-ink);border-radius:6px;padding:3px 10px}
   .part h2{font-size:20px;font-weight:600;white-space:nowrap}
   .part .rule{flex:1;height:1px;background:var(--line)}
   .part-sub{text-align:center;color:var(--ink-3);font-size:12.5px;margin:-8px 0 22px}
@@ -65,7 +65,7 @@
   .card p b, .step p b, .step li b, .ops li b{color:var(--ink);font-weight:600}
   .flow{display:flex;align-items:stretch;gap:8px;margin:16px 0 4px}
   .flow .f{flex:1;background:var(--blue-bg);border-radius:8px;padding:12px;text-align:center}
-  .flow .f b{display:block;color:var(--blue);font-size:13px;margin-bottom:2px}
+  .flow .f b{display:block;color:var(--blue-ink);font-size:13px;margin-bottom:2px}
   .flow .f span{font-size:12.5px;color:var(--ink-2)}
   .flow .a{align-self:center;color:var(--ink-3);font-size:18px;flex:0 0 auto}
   .flow .f.safe{background:var(--green-bg);box-shadow:inset 0 0 0 1.5px rgba(21,128,61,.42)}
@@ -80,7 +80,7 @@
   .vs{margin-top:16px}
   .vs-start{background:var(--blue-bg);border-radius:10px;padding:9px 16px;text-align:center;
     font-size:13.5px;color:var(--ink-2)}
-  .vs-start b{color:var(--blue)}
+  .vs-start b{color:var(--blue-ink)}
   .vs-old{background:var(--amber-bg);border-radius:10px;padding:13px 18px 9px;margin-top:10px}
   .vs-tag{display:flex;align-items:center;font-size:12px;font-weight:700;
     letter-spacing:.5px;margin-bottom:5px}
@@ -111,7 +111,7 @@
   .step{background:var(--panel);border-radius:12px;padding:26px 28px;margin-bottom:20px;
     box-shadow:0 1px 3px rgba(0,0,0,.05);scroll-margin-top:24px}
   .step-h{display:flex;align-items:baseline;gap:12px;margin-bottom:14px}
-  .step-h .no{flex:0 0 auto;width:30px;height:30px;border-radius:8px;background:var(--blue);
+  .step-h .no{flex:0 0 auto;width:30px;height:30px;border-radius:8px;background:var(--blue-ink);
     color:#fff;font-weight:600;font-size:15px;text-align:center;line-height:30px;align-self:center}
   .step-h h3{font-size:18px;font-weight:600}
   .step-h .who{font-size:12px;color:var(--ink-3);border:1px solid var(--line);
@@ -125,7 +125,7 @@
     border-bottom:1px dashed var(--line)}
   .ops li:last-child{border-bottom:none}
   .ops li::before{content:attr(data-n);position:absolute;left:0;top:9px;width:22px;height:22px;
-    border-radius:50%;background:var(--blue-bg);color:var(--blue);font-size:12px;font-weight:700;
+    border-radius:50%;background:var(--blue-bg);color:var(--blue-ink);font-size:12px;font-weight:700;
     text-align:center;line-height:22px}
 
   /* ===== 提示块 ===== */
@@ -148,7 +148,7 @@
   figcaption{text-align:center;font-size:12.5px;color:var(--ink-3);margin-top:8px}
   .callouts{list-style:none;margin:10px 0 4px;font-size:13.5px;color:var(--ink-2)}
   .callouts li{padding:3px 0}
-  .callouts .cno{display:inline-block;width:18px;height:18px;border-radius:50%;background:var(--blue);
+  .callouts .cno{display:inline-block;width:18px;height:18px;border-radius:50%;background:var(--blue-ink);
     color:#fff;font-size:11px;text-align:center;line-height:18px;margin-right:8px}
 
   /* ===== 表格 ===== */

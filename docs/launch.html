@@ -8,7 +8,7 @@
 <style>
   :root{
     --bg:#F5F4F0; --panel:#FFFFFF; --ink:#26251F; --ink-2:#5F5E5A; --ink-3:#8A8880;
-    --line:#E4E2DA; --blue:#2563EB; --blue-bg:#EFF4FE; --green:#15803D; --green-bg:#EEF7F0;
+    --line:#E4E2DA; --blue:#0377FC; --blue-ink:#0560C8; --blue-bg:#E9F2FF; --green:#15803D; --green-bg:#EEF7F0;
     --amber:#92610E; --amber-bg:#FBF3E4;
   }
   *{margin:0;padding:0;box-sizing:border-box}
@@ -37,7 +37,7 @@
   .btn.ghost:hover{background:var(--panel)}
   .micro{font-size:12px;color:var(--ink-3);margin-top:14px}
   .micro a{color:var(--ink-2);text-decoration:none;border-bottom:1px solid var(--line)}
-  .micro a:hover{color:var(--blue);border-bottom-color:var(--blue)}
+  .micro a:hover{color:var(--blue-ink);border-bottom-color:var(--blue-ink)}
 
   /* ===== 数字条 ===== */
   .stats{display:flex;gap:12px;margin:34px 0 8px}
@@ -53,7 +53,7 @@
   /* 区块标签：实底蓝胶囊，与教程页「第 X 部分」同一套语言 */
   .eyebrow{display:block;width:-moz-fit-content;width:fit-content;
     font-size:12px;font-weight:700;letter-spacing:.8px;
-    color:#fff;background:var(--blue);border-radius:6px;padding:3px 12px;line-height:1.5}
+    color:#fff;background:var(--blue-ink);border-radius:6px;padding:3px 12px;line-height:1.5}
   h2{font-size:22px;font-weight:600;margin-top:10px}
   .lead{color:var(--ink-2);margin-top:10px}
 
@@ -61,7 +61,7 @@
   .vs{margin-top:18px}
   .vs-start{background:var(--blue-bg);border-radius:10px;padding:10px 16px;text-align:center;
     font-size:13.5px;color:var(--ink-2)}
-  .vs-start b{color:var(--blue)}
+  .vs-start b{color:var(--blue-ink)}
   .vs-old{background:var(--amber-bg);border-radius:10px;padding:13px 18px 9px;margin-top:10px}
   .vs-tag{display:flex;align-items:center;font-size:12px;font-weight:700;
     letter-spacing:.5px;margin-bottom:5px}
@@ -98,7 +98,7 @@
   .s3{flex:1;background:var(--panel);border-radius:12px;padding:18px;
     box-shadow:0 1px 3px rgba(0,0,0,.05)}
   .s3 .n{display:inline-block;width:22px;height:22px;border-radius:6px;background:var(--blue-bg);
-    color:var(--blue);font-size:12px;font-weight:700;text-align:center;line-height:22px}
+    color:var(--blue-ink);font-size:12px;font-weight:700;text-align:center;line-height:22px}
   .s3 b{display:block;margin-top:9px;font-size:14px}
   .s3 span{display:block;font-size:12.5px;color:var(--ink-2);margin-top:3px;line-height:1.6}
   .s3.hl{background:var(--green-bg);box-shadow:inset 0 0 0 1.5px rgba(21,128,61,.35)}
@@ -163,7 +163,7 @@
   .toc a:hover{color:var(--ink);background:rgba(255,255,255,.75)}
   .toc a.on{color:var(--ink);font-weight:600;background:var(--panel);
     box-shadow:0 1px 4px rgba(0,0,0,.07)}
-  .toc a.on i{color:var(--blue)}
+  .toc a.on i{color:var(--blue-ink)}
 
   @media (max-width:720px){
     .toc-in{justify-content:center;padding:0 8px;gap:0}
