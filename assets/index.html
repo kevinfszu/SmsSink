@@ -61,6 +61,9 @@ header{display:flex;align-items:center;gap:12px;margin-bottom:20px;flex-wrap:wra
 h1{font-size:20px;line-height:1.3;font-weight:600;margin:0;letter-spacing:-.01em}
 .sub{color:var(--muted);font-size:12px;margin-top:2px}
 .spacer{flex:1}
+/* 右侧动作区整体换行：窗口变窄时「使用教程」+状态胶囊一起掉到下一行，
+   不会因为 flex 挤压被裁出视口右边缘 */
+.hact{display:flex;align-items:center;gap:12px;margin-left:auto}
 .pill{
   display:inline-flex;align-items:center;gap:6px;background:var(--ok-soft);color:var(--ok);
   border-radius:100px;padding:5px 11px;font-size:12px;font-weight:500;
@@ -192,6 +195,8 @@ code{font-family:ui-monospace,"Cascadia Mono",Consolas,monospace;font-size:.9em;
 .rules-layout{display:grid;grid-template-columns:272px 1fr;gap:16px;align-items:start}
 .rule-side{position:sticky;top:64px}
 @media(max-width:860px){.rules-layout{grid-template-columns:1fr}}
+/* 窄屏改为整行左对齐：右对齐时状态胶囊会被推出视口 */
+@media(max-width:560px){.hact{margin-left:0;width:100%;justify-content:flex-start}}
 .rule-list{border-radius:var(--r-sm);overflow:hidden;margin:-8px -12px 0}
 .rule-item{
   padding:10px 12px;cursor:pointer;display:flex;gap:10px;align-items:center;
@@ -240,8 +245,11 @@ code{font-family:ui-monospace,"Cascadia Mono",Consolas,monospace;font-size:.9em;
   <header>
     <img class="logo" alt="SMS 接码器" src="data:image/png;base64,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">
     <div><h1>SMS 接码器 · PC 版</h1><div class="sub" id="subTitle">被动接收 SmsForwarder 推送 · 按规则提取与通知</div></div>
-    <div class="spacer"></div>
-    <span class="pill"><i class="dot"></i><span id="statusText">连接中…</span></span>
+    <!-- 教程页由本地服务提供（/tutorial），随 exe 一起编进去，不依赖外部文件 -->
+    <div class="hact">
+      <a class="btn ghost sm" href="/tutorial" target="_blank" rel="noopener">使用教程</a>
+      <span class="pill"><i class="dot"></i><span id="statusText">连接中…</span></span>
+    </div>
   </header>
 
   <nav>

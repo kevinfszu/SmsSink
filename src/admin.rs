@@ -19,6 +19,16 @@ pub fn route(method: &str, path: &str, query: &str, body: &str, token_ok: bool) 
     if path == "/" || path == "/index.html" {
         return Resp::html(200, include_str!("../assets/index.html").to_string());
     }
+    // 教程与产品介绍随 exe 一起编进去：不依赖安装目录里的 docs/，
+    // 用户把 exe 单独拷走也打得开。两页都是自包含的（图片全部 base64 内嵌）。
+    // 托盘菜单与「使用教程」按钮都指向这里；launch.html 里的相对链接
+    // `tutorial.html` 也正好落在下面这条路由上。
+    if path == "/tutorial" || path == "/tutorial.html" {
+        return Resp::html(200, include_str!("../docs/tutorial.html").to_string());
+    }
+    if path == "/launch" || path == "/launch.html" {
+        return Resp::html(200, include_str!("../docs/launch.html").to_string());
+    }
     if !path.starts_with("/api/") {
         return err(404, "not found");
     }

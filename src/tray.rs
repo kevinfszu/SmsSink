@@ -17,9 +17,11 @@ pub const WINDOW_CLASS: &str = "SmsSinkMessageWindow";
 // id 必须唯一且稳定：TrackPopupMenu 用 TPM_RETURNCMD 直接返回 id（不发 WM_COMMAND），
 // 所以取值不必连续，但要避开「最近验证码」占用的 200 段。
 const MENU_ADMIN: usize = 1;
+const MENU_TUTORIAL: usize = 2;
 const MENU_TEST: usize = 3;
 const MENU_RELOAD: usize = 4;
 const MENU_AUTOSTART: usize = 5;
+const MENU_LAUNCH: usize = 6;
 const MENU_EXIT: usize = 7;
 /// 「最近验证码」子菜单项 id = 200 + store::recent 返回 Vec 的下标
 const MENU_RECENT_BASE: usize = 200;
@@ -114,6 +116,15 @@ fn admin_url(fragment: &str) -> String {
         "http://127.0.0.1:{}/?token={}{}",
         cfg.port, cfg.admin_token, fragment
     )
+}
+
+/// 文档页（教程 / 产品介绍）地址。静态页不校验 token，URL 里就不带，
+/// 用户把地址复制给别人时不会顺带泄露访问令牌。
+fn page_url(page: &str) -> String {
+    // 先绑到变量：直接链式调用时临时值会在语句结束被释放，guard 借不到它
+    let state = app::get();
+    let port = state.cfg.read().unwrap_or_else(|e| e.into_inner()).port;
+    format!("http://127.0.0.1:{port}/{page}")
 }
 
 /// 从 `YYYY-MM-DD HH:MM:SS` 里截出 `HH:MM`。格式异常时原样返回，绝不 panic。
@@ -263,6 +274,10 @@ fn show_menu(hwnd: HWND) {
     win::menu_separator(menu);
 
     win::menu_item(menu, MF_STRING, MENU_ADMIN, "打开管理台");
+    // 刚装好、还没配手机端的人第一件事是看教程；介绍页则是给"要不要用"的人看的。
+    // 两者都属于"打开一个页面"，与管理台排在一起，不塞进「设置」。
+    win::menu_item(menu, MF_STRING, MENU_TUTORIAL, "使用教程");
+    win::menu_item(menu, MF_STRING, MENU_LAUNCH, "产品介绍");
     win::menu_item(menu, MF_STRING, MENU_TEST, "发送测试通知");
     // 分隔线在这里不只是分组：没有它，「设置」会紧贴上一项，看起来像同一条目
     win::menu_separator(menu);
@@ -310,6 +325,8 @@ fn show_menu(hwnd: HWND) {
 
     match cmd {
         MENU_ADMIN => win::open_url(&admin_url("")),
+        MENU_TUTORIAL => win::open_url(&page_url("tutorial")),
+        MENU_LAUNCH => win::open_url(&page_url("launch")),
         MENU_TEST => {
             // 测试通知本身会弹卡片 / Toast，别再叠一个气泡
             unsafe {
