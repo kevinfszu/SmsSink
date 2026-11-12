@@ -1,8 +1,28 @@
 # SmsSink
 
-一款 Windows 上的短信接码器：被动接收 [SmsForwarder](https://github.com/pppscn/SmsForwarder) 推送的短信，按自定义规则提取内容（主要是数字验证码），并及时通知。手机与电脑在同一局域网时直连，无需任何中转服务或云函数。常驻托盘，作品名统一为 **SmsSink**。
+**[SmsForwarder](https://github.com/pppscn/SmsForwarder) 的 Windows 接收端** —— 安卓短信经局域网直达电脑，自动提取验证码、弹卡片、一键复制，不经过任何云端服务。
+
+[![build](https://img.shields.io/github/actions/workflow/status/kevinfszu/SmsSink/release.yml?label=build)](https://github.com/kevinfszu/SmsSink/actions/workflows/release.yml)
+[![release](https://img.shields.io/github/v/release/kevinfszu/SmsSink?label=release&color=0377fc)](https://github.com/kevinfszu/SmsSink/releases/latest)
+[![license](https://img.shields.io/badge/license-MIT-0377fc)](LICENSE)
+[![platform](https://img.shields.io/badge/platform-Windows%2010%20%2F%2011-0377fc)](#安装)
+
+一款 Windows 上的短信接码器：被动接收 [SmsForwarder](https://github.com/pppscn/SmsForwarder) 推送的短信，按自定义规则提取内容（主要是数字验证码），并及时通知。手机与电脑在同一局域网时直连，无需任何中转服务或云函数。常驻托盘。
+
+> **需要搭配使用**：手机端装 [SmsForwarder](https://github.com/pppscn/SmsForwarder)（Android）负责转发，SmsSink 只做接收端，单独安装收不到短信。仅支持 Windows 10 / 11 + Android，不支持 iPhone。效果见[官网](https://kevinfszu.github.io/SmsSink/)。
 
 常驻形态是**托盘 + 阻塞式消息泵**：空闲时 CPU 为 0，无常驻异步运行时、无 WebView2、无浏览器进程。管理台是 `127.0.0.1` 上的本地网页，用系统默认浏览器打开。
+
+## English
+
+**SmsSink** is a Windows tray app that receives SMS forwarded from [SmsForwarder](https://github.com/pppscn/SmsForwarder) over your local network, extracts the verification code with your own rules, and shows it in a desktop card you can copy with one click. Messages never leave your LAN — no cloud service, no account, and the admin UI is a page served on `127.0.0.1`.
+
+- **You need both halves.** SmsSink is the receiving end only: install SmsForwarder (Android) on the phone to forward the messages. SmsSink on its own receives nothing.
+- **Windows 10 / 11 + Android only.** iPhone is not supported, and both devices have to be on the same network.
+- **Install:** take `SmsSink-x.y.z-setup.exe` from [Releases](https://github.com/kevinfszu/SmsSink/releases/latest) — per-user, no admin rights — then add a SmsForwarder **Webhook** channel pointing at `http://<your-pc-ip>:8787/hook`. The admin UI fills that address in for you.
+- **Build:** `cargo build --release`, or `installer\build.ps1` for the setup package (needs Inno Setup 6). MIT licensed.
+
+Docs: [project site](https://kevinfszu.github.io/SmsSink/) · [10-minute walkthrough](https://kevinfszu.github.io/SmsSink/tutorial.html) (Chinese). The rest of this README is in Chinese.
 
 ## 安装
 
@@ -33,7 +53,7 @@ powershell -ExecutionPolicy Bypass -File installer\build.ps1
 
 ## 快速开始
 
-> 📖 **新手用户**：请看图文教程 [docs/tutorial.html](docs/tutorial.html)（单文件、图片内嵌，可直接发给朋友或在浏览器打开），10 分钟完成手机↔电脑全链路配置。
+> 📖 **新手用户**：请看图文教程 [官网教程页](https://kevinfszu.github.io/SmsSink/tutorial.html)（单文件、图片内嵌，可直接发给朋友或在浏览器打开），10 分钟完成手机↔电脑全链路配置。源文件在 `docs/tutorial.html`。
 
 首次启动会在 `%APPDATA%\SmsSink\config.json` 生成配置（便携版则写在 exe 旁边的 `config.json`），短信记录在 `%APPDATA%\SmsSink\data.db`，并打印管理台地址与访问令牌：
 
