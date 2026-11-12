@@ -1,8 +1,9 @@
 name: Pages
 
-# 把 docs/ 里的两个单文件页面发布成静态站点：
+# 把 docs/ 里的页面发布成静态站点：
 #   docs/launch.html   -> /          （产品落地页）
 #   docs/tutorial.html -> /tutorial.html
+# 顺带发布 robots.txt、sitemap.xml 与 og 分享图（img/）。
 # 只在 docs/ 或本工作流变化时触发，改代码不会重复部署。
 
 on:
@@ -11,6 +12,9 @@ on:
     paths:
       - "docs/launch.html"
       - "docs/tutorial.html"
+      - "docs/robots.txt"
+      - "docs/sitemap.xml"
+      - "docs/img/**"
       - ".github/workflows/pages.yml"
   workflow_dispatch:
 
@@ -35,13 +39,18 @@ jobs:
       - name: 组装站点
         run: |
           set -euo pipefail
-          mkdir -p _site
+          mkdir -p _site/img
           # 落地页作为站点根，tutorial.html 保持同名以便页面内的相对链接继续生效
           cp docs/launch.html _site/index.html
           cp docs/tutorial.html _site/tutorial.html
+          # lastmod 用构建当天日期（UTC），避免 sitemap 里写死过期日期
+          sed "s/__LASTMOD__/$(date -u +%F)/g" docs/sitemap.xml > _site/sitemap.xml
+          cp docs/robots.txt _site/robots.txt
+          # og:image 的绝对地址指向 /SmsSink/img/og-cover.jpg，必须一并发布
+          cp docs/img/og-cover.jpg _site/img/og-cover.jpg
           # 不跑 Jekyll，避免下划线开头的文件被忽略
           touch _site/.nojekyll
-          ls -lh _site
+          ls -lh _site _site/img
 
       - uses: actions/configure-pages@v5
 
