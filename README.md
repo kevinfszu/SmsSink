@@ -2,7 +2,7 @@
 
 **[SmsForwarder](https://github.com/pppscn/SmsForwarder) 的 Windows 接收端** —— 安卓短信经局域网直达电脑，自动提取验证码、弹卡片、一键复制，不经过任何云端服务。
 
-[![build](https://img.shields.io/github/actions/workflow/status/kevinfszu/SmsSink/release.yml?label=build)](https://github.com/kevinfszu/SmsSink/actions/workflows/release.yml)
+[![build](https://img.shields.io/github/actions/workflow/status/kevinfszu/SmsSink/ci.yml?label=build)](https://github.com/kevinfszu/SmsSink/actions/workflows/ci.yml)
 [![release](https://img.shields.io/github/v/release/kevinfszu/SmsSink?label=release&color=0377fc)](https://github.com/kevinfszu/SmsSink/releases/latest)
 [![license](https://img.shields.io/badge/license-MIT-0377fc)](LICENSE)
 [![platform](https://img.shields.io/badge/platform-Windows%2010%20%2F%2011-0377fc)](#安装)
