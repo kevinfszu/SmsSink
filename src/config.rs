@@ -130,27 +130,48 @@ impl Default for Config {
     }
 }
 
+/// 便携版配置：只有 exe 旁边**已存在** config.json 时才认，
+/// 避免安装版首次运行把配置写进安装目录（卸载时会被一并删掉）
+fn portable_config() -> Option<PathBuf> {
+    let dir = std::env::current_exe()
+        .ok()
+        .and_then(|p| p.parent().map(|d| d.to_path_buf()))?;
+    let path = dir.join("config.json");
+    if path.exists() {
+        Some(path)
+    } else {
+        None
+    }
+}
+
+fn appdata_config() -> Option<PathBuf> {
+    std::env::var("APPDATA")
+        .ok()
+        .map(|dir| PathBuf::from(dir).join(APP_ID).join("config.json"))
+}
+
+/// 读取顺序：便携版优先（exe 旁边），否则用户目录
 fn candidates() -> Vec<PathBuf> {
     let mut paths = Vec::new();
-    if let Some(dir) = std::env::current_exe()
-        .ok()
-        .and_then(|p| p.parent().map(|d| d.to_path_buf()))
-    {
-        paths.push(dir.join("config.json"));
+    if let Some(p) = portable_config() {
+        paths.push(p);
     }
-    if let Ok(appdata) = std::env::var("APPDATA") {
-        paths.push(PathBuf::from(appdata).join(APP_ID).join("config.json"));
+    if let Some(p) = appdata_config() {
+        paths.push(p);
     }
     paths
 }
 
+/// 写入目标：便携版已存在就继续用它，否则落到 %APPDATA%，
+/// 保证卸载重装后配置与短信记录还在
+fn default_write_path() -> PathBuf {
+    portable_config()
+        .or_else(appdata_config)
+        .unwrap_or_else(|| PathBuf::from("config.json"))
+}
+
 pub fn config_path() -> PathBuf {
-    ACTIVE_PATH.get().cloned().unwrap_or_else(|| {
-        candidates()
-            .into_iter()
-            .next()
-            .unwrap_or_else(|| PathBuf::from("config.json"))
-    })
+    ACTIVE_PATH.get().cloned().unwrap_or_else(default_write_path)
 }
 
 pub fn save(cfg: &Config) -> std::io::Result<()> {
@@ -200,11 +221,7 @@ pub fn load() -> Config {
 
     let mut cfg = cfg.unwrap_or_default();
     if ACTIVE_PATH.get().is_none() {
-        let path = candidates()
-            .into_iter()
-            .next()
-            .unwrap_or_else(|| PathBuf::from("config.json"));
-        let _ = ACTIVE_PATH.set(path);
+        let _ = ACTIVE_PATH.set(default_write_path());
     }
     if cfg.admin_token.is_empty() {
         cfg.admin_token = random_token();

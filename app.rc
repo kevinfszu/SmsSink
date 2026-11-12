@@ -2,16 +2,19 @@
 
 #include <winres.h>
 
+// 本文件是模板：路径与版本号由 build.rs 替换后写入 OUT_DIR 再编译。
+// 版本号的唯一来源是 Cargo.toml 的 version 字段，不要在这里写死数字。
+
 // 主图标：与 window class / 托盘共用（ID 见 src/win.rs 的 ICON_RESOURCE_ID）
-1 ICON "assets/app.ico"
+1 ICON "{ICON_PATH}"
 
 // DPI 感知声明（RT_MANIFEST = 24）。写在资源里而不是依赖链接器，
 // 保证无论谁编译都带上 permonitorv2，避免字体被位图放大
-1 24 "app.manifest"
+1 24 "{MANIFEST_PATH}"
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 0,2,0,0
- PRODUCTVERSION 0,2,0,0
+ FILEVERSION {FILE_VERSION}
+ PRODUCTVERSION {FILE_VERSION}
  FILEFLAGSMASK 0x3fL
  FILEFLAGS 0x0L
  FILEOS VOS_NT_WINDOWS32
@@ -24,12 +27,12 @@ BEGIN
         BEGIN
             VALUE "CompanyName", "SmsSink"
             VALUE "FileDescription", "SmsSink"
-            VALUE "FileVersion", "0.2.0.0"
+            VALUE "FileVersion", "{VERSION_STR}"
             VALUE "InternalName", "SmsSink"
             VALUE "LegalCopyright", "Copyright (C) 2026"
             VALUE "OriginalFilename", "SmsSink.exe"
             VALUE "ProductName", "SmsSink"
-            VALUE "ProductVersion", "0.2.0.0"
+            VALUE "ProductVersion", "{VERSION_STR}"
             VALUE "Comments", "被动接收 SmsForwarder 推送的验证码短信"
         END
     END
