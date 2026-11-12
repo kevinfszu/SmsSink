@@ -26,8 +26,8 @@ from dove_glyph import POLYGONS  # noqa: E402
 ROOT = Path(__file__).resolve().parent.parent
 ASSETS = ROOT / "assets"
 
-# 取自参考图的实测底色（#0A7FEE），整块纯色，不做渐变
-BG = (10, 127, 238)
+# 品牌蓝（#0377FC），整块纯色，不做渐变
+BG = (3, 119, 252)
 SS = 4                  # 超采样倍数
 CANVAS = 1024           # 字形坐标系
 RADIUS_RATIO = 0.205    # 圆角半径占边长比例（对齐参考图）
