@@ -193,11 +193,15 @@ tbody tr.detail:hover td{background:var(--panel-2)}
 
 /* ---------- 赞助：整块居中成一条窄栏（标题与面板同宽），
    否则 1080 宽的窗口下整块挤在左边，右侧空出一大片 ---------- */
-#sponsor{max-width:680px;margin:0 auto}
-.sp-lead{margin:0 0 10px;color:var(--text-2);line-height:1.75}
+#sponsor{max-width:640px;margin:0 auto}
+/* 标题与说明一并居中：这块只有两句说明和两张码，左对齐时右边会留出参差的空白。
+   page-head 改成竖排，副标题落到标题下面，避免两者并排后被推到两端 */
+#sponsor .page-head{flex-direction:column;justify-content:center;gap:5px;margin-bottom:18px;text-align:center}
+/* max-width + balance：让每段的各行长度接近，居中时才不会一边长一边短 */
+.sp-lead{margin:0 auto 10px;max-width:34em;color:var(--text-2);line-height:1.8;text-align:center;text-wrap:balance}
 .sp-lead:last-of-type{margin-bottom:0}
 .sp-lead b{color:var(--text);font-weight:600}
-.sp-codes{display:flex;gap:16px;flex-wrap:wrap;margin:20px 0 0}
+.sp-codes{display:flex;gap:16px;flex-wrap:wrap;margin:24px 0 0}
 .sp-code{
   flex:1 1 0;min-width:0;margin:0;display:flex;flex-direction:column;align-items:center;gap:10px;
   padding:18px 16px 16px;background:var(--panel-2);border:1px solid var(--line);border-radius:var(--r-md);
@@ -205,6 +209,8 @@ tbody tr.detail:hover td{background:var(--panel-2)}
 /* 二维码本身必须是纯白底，深色模式下也不反色，否则扫不出来 */
 .sp-code img{display:block;width:100%;max-width:220px;height:auto;border-radius:var(--r-sm);background:#fff}
 .sp-code figcaption{font-size:12px;color:var(--muted)}
+/* 注脚与上面的码拉开距离，用一条细线代替留白，居中时才有个收尾 */
+.sp-note{margin:24px 0 0;padding-top:16px;border-top:1px solid var(--line);font-size:12px;color:var(--muted);line-height:1.7;text-align:center;text-wrap:balance}
 .clip{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 tbody .btn.rowcopy{background:transparent;border-color:transparent;color:var(--faint)}
 tbody tr:hover .btn.rowcopy{background:var(--panel);border-color:var(--line-strong);color:var(--text)}
@@ -491,7 +497,9 @@ code{font-family:ui-monospace,"Cascadia Mono",Consolas,monospace;font-size:.9em;
       <span class="count">完全自愿，与软件功能无关</span>
     </div>
     <div class="panel">
-      <p class="sp-lead">SmsSink <b>没有广告，不做云端中转，也不收集你的短信内容</b>——它只在你的电脑上安静地待着，收到短信就弹一张卡片。</p>
+      <!-- 句号后断行：居中排版下自动换行会把「短信内容」拆成「短信内 / 容。」，
+           一个孤字带句号落在行首很难看。这句文案固定，直接断死 -->
+      <p class="sp-lead">SmsSink <b>没有广告，不做云端中转，也不收集你的短信内容</b>。<br>它只在你的电脑上安静地待着，收到短信就弹一张卡片。</p>
       <p class="sp-lead">如果它确实帮你少跑了几趟手机、少手动抄过几次验证码，可以请我喝杯咖啡。不请也完全没关系，功能一样用。</p>
       <div class="sp-codes">
         <figure class="sp-code">
@@ -505,7 +513,7 @@ code{font-family:ui-monospace,"Cascadia Mono",Consolas,monospace;font-size:.9em;
           <figcaption>用支付宝扫一扫</figcaption>
         </figure>
       </div>
-      <p class="hint">打赏不解锁任何功能，也不影响后续版本。真觉得不好用，去 Issues 骂我也比打赏有用。</p>
+      <p class="sp-note">打赏不解锁任何功能，也不影响后续版本。觉得不好用，去 Issues 骂我也比打赏有用。</p>
     </div>
   </section>
 </div>
