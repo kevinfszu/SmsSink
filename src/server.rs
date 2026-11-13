@@ -26,7 +26,9 @@ pub struct Inbox {
 pub struct Resp {
     pub status: u16,
     pub content_type: &'static str,
-    pub body: String,
+    /// 用 Vec<u8> 而不是 String：二维码这类图片要按原始字节发出去，
+    /// 走 Base64 内嵌到页面里会白胖三分之一，也没法单独缓存
+    pub body: Vec<u8>,
     pub extra_header: Option<String>,
 }
 
@@ -35,7 +37,7 @@ impl Resp {
         Self {
             status,
             content_type: "application/json; charset=utf-8",
-            body,
+            body: body.into_bytes(),
             extra_header: None,
         }
     }
@@ -43,7 +45,16 @@ impl Resp {
         Self {
             status,
             content_type: "text/html; charset=utf-8",
-            body,
+            body: body.into_bytes(),
+            extra_header: None,
+        }
+    }
+    /// 二进制静态资源（图片）。内容是构建期 `include_bytes!` 进来的，生命周期是 'static
+    pub fn bin(status: u16, content_type: &'static str, body: &'static [u8]) -> Self {
+        Self {
+            status,
+            content_type,
+            body: body.to_vec(),
             extra_header: None,
         }
     }
@@ -441,10 +452,10 @@ fn respond(stream: &mut TcpStream, resp: Resp) {
         "HTTP/1.1 {} {reason}\r\nContent-Type: {}\r\nContent-Length: {}\r\nCache-Control: no-store\r\n{extra}Connection: close\r\n\r\n",
         resp.status,
         resp.content_type,
-        resp.body.as_bytes().len()
+        resp.body.len()
     );
     let _ = stream.write_all(head.as_bytes());
-    let _ = stream.write_all(resp.body.as_bytes());
+    let _ = stream.write_all(&resp.body);
     let _ = stream.flush();
 }
 

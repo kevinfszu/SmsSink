@@ -332,7 +332,8 @@ fn show_menu(hwnd: HWND) {
         MENU_ADMIN => win::open_url(&admin_url("")),
         MENU_TUTORIAL => win::open_url(&page_url("tutorial")),
         MENU_LAUNCH => win::open_url(&page_url("launch")),
-        MENU_SPONSOR => win::open_url(&page_url("sponsor")),
+        // 赞助不是独立页面，它是管理台里的第 5 个面板，靠 hash 直接落到那一段
+        MENU_SPONSOR => win::open_url(&admin_url("#sponsor")),
         MENU_TEST => {
             // 测试通知本身会弹卡片 / Toast，别再叠一个气泡
             unsafe {

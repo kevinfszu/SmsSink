@@ -29,9 +29,22 @@ pub fn route(method: &str, path: &str, query: &str, body: &str, token_ok: bool) 
     if path == "/launch" || path == "/launch.html" {
         return Resp::html(200, include_str!("../docs/launch.html").to_string());
     }
-    // 赞助页：只有两张收款码，纯静态、无数据交互。同样内嵌，不依赖网络。
-    if path == "/sponsor" || path == "/sponsor.html" {
-        return Resp::html(200, include_str!("../docs/sponsor.html").to_string());
+    // 赞助不是独立页面，它是管理台里的第 5 个页签；这里只负责把那两张收款码发出去。
+    // 用 include_bytes! 走二进制，而不是 base64 塞进 index.html——那会让一个要人工
+    // 维护的 HTML 平白多出 14 万字节，而且换一张码就得重新生成整份页面。
+    if path == "/qr/wechat.png" {
+        return Resp::bin(
+            200,
+            "image/png",
+            include_bytes!("../assets/sponsor-wechat.png"),
+        );
+    }
+    if path == "/qr/alipay.png" {
+        return Resp::bin(
+            200,
+            "image/png",
+            include_bytes!("../assets/sponsor-alipay.png"),
+        );
     }
     if !path.starts_with("/api/") {
         return err(404, "not found");
@@ -234,7 +247,7 @@ fn export_csv(query: &str) -> Resp {
     Resp {
         status: 200,
         content_type: "text/csv; charset=utf-8",
-        body: csv,
+        body: csv.into_bytes(),
         extra_header: Some(format!(
             "Content-Disposition: attachment; filename=\"{name}\""
         )),

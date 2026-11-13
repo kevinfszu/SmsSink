@@ -14,6 +14,8 @@
   --text:#15181d; --text-2:#414852; --muted:#6e7480; --faint:#9aa1ad;
   --accent:#0377fc; --accent-ink:#0560c8; --accent-hover:#0449a8; --accent-soft:#e9f2ff;
   --on-accent:#ffffff;
+  /* 微信 / 支付宝作文字用的调深版：原始品牌色对比度只有 2.2 / 3.6，撑不起 12px 标签 */
+  --wx:#12884f; --wx-soft:#e7f8ee; --ali:#1258cf; --ali-soft:#e8f1ff;
   --ok:#059669; --ok-soft:#ecfdf5;
   --warn:#b45309; --warn-soft:#fffbeb;
   --danger:#dc2626; --danger-soft:#fef2f2;
@@ -33,6 +35,7 @@
     --text:#eef0f4; --text-2:#c3c8d2; --muted:#98a0ad; --faint:#6b7482;
     --accent:#4e9bff; --accent-ink:#8fbaff; --accent-hover:#2f86ef; --accent-soft:#1b2436;
     --on-accent:#0b1220;
+    --wx:#4fd18b; --wx-soft:#123024; --ali:#6aa9ff; --ali-soft:#122239;
     --ok:#34d399; --ok-soft:#11291f;
     --warn:#fbbf24; --warn-soft:#2a2110;
     --danger:#f87171; --danger-soft:#2b1618;
@@ -87,15 +90,17 @@ nav button{
 }
 nav button:hover{color:var(--text-2)}
 nav button.on{color:var(--text);border-bottom-color:var(--accent);font-weight:600}
-/* 赞助作者：与四个 tab 同一排、同一节奏，但它不切换面板，所以不做底线高亮，
-   改用浅底胶囊 + accent 文字做强调——既被看见，又不会被误读成第五个页签 */
+/* 赞助作者：与四个 tab 同一排、同一节奏，但它不是"改设置"那一类，视觉上单独强调——
+   常态浅底胶囊，选中时整颗填充。选中的底线要压掉，否则会在圆角胶囊外面露出一截蓝条 */
 nav .nav-extra{
   align-self:center;display:inline-flex;align-items:center;gap:6px;
-  font-size:13px;font-weight:600;color:var(--accent-ink);text-decoration:none;
+  font-size:13px;font-weight:600;color:var(--accent-ink);
   padding:5px 12px;border-radius:100px;margin-bottom:0;background:var(--accent-soft);
+  border-bottom-color:transparent;
   transition:color .15s var(--ease),background .15s var(--ease);
 }
-nav .nav-extra:hover{color:var(--on-accent);background:var(--accent-ink)}
+nav .nav-extra:hover,
+nav .nav-extra.on{color:var(--on-accent);background:var(--accent-ink);border-bottom-color:transparent}
 nav .nav-extra:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 
 section{display:none;animation:fade .18s var(--ease)}
@@ -178,11 +183,27 @@ tbody tr.detail:hover td{background:var(--panel-2)}
 .tag{display:inline-block;padding:2px 8px;border-radius:6px;background:var(--accent-soft);color:var(--accent-ink);font-size:12px;font-weight:500}
 .tag.gray{background:var(--panel-2);color:var(--muted);font-weight:400}
 .tag.ok{background:var(--ok-soft);color:var(--ok)}
+.tag.wx{background:var(--wx-soft);color:var(--wx)}
+.tag.ali{background:var(--ali-soft);color:var(--ali)}
 .badge{display:inline-block;font-size:12px;padding:1px 6px;border-radius:4px;background:var(--warn-soft);color:var(--warn);margin-left:6px;vertical-align:1px;font-weight:500}
 .muted{color:var(--muted)}
 .nowrap{white-space:nowrap}
 .mono{font-family:ui-monospace,"Cascadia Mono",Consolas,monospace}
 .empty{text-align:center;color:var(--muted);padding:48px 0;font-size:14px}
+
+/* ---------- 赞助：两张码并排。面板限宽，否则 1080 下右侧会空出一大块 ---------- */
+.sp{max-width:620px}
+.sp-lead{margin:0 0 10px;color:var(--text-2);line-height:1.75}
+.sp-lead:last-of-type{margin-bottom:0}
+.sp-lead b{color:var(--text);font-weight:600}
+.sp-codes{display:flex;gap:16px;flex-wrap:wrap;margin:20px 0 0}
+.sp-code{
+  flex:1 1 190px;max-width:250px;margin:0;display:flex;flex-direction:column;align-items:center;gap:10px;
+  padding:18px 16px 16px;background:var(--panel-2);border:1px solid var(--line);border-radius:var(--r-md);
+}
+/* 二维码本身必须是纯白底，深色模式下也不反色，否则扫不出来 */
+.sp-code img{display:block;width:100%;max-width:200px;height:auto;border-radius:var(--r-sm);background:#fff}
+.sp-code figcaption{font-size:12px;color:var(--muted)}
 .clip{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 tbody .btn.rowcopy{background:transparent;border-color:transparent;color:var(--faint)}
 tbody tr:hover .btn.rowcopy{background:var(--panel);border-color:var(--line-strong);color:var(--text)}
@@ -270,8 +291,8 @@ code{font-family:ui-monospace,"Cascadia Mono",Consolas,monospace;font-size:.9em;
     <button data-tab="rules">规则管理</button>
     <button data-tab="stats">统计分析</button>
     <button data-tab="settings">设置</button>
-    <!-- 赞助页由本地服务提供（/sponsor），随 exe 一起编进去 -->
-    <a class="nav-extra" href="/sponsor" target="_blank" rel="noopener">赞助作者</a>
+    <!-- 赞助是管理台里的一个页签，不是外链：内容就在下面 #sponsor -->
+    <button data-tab="sponsor" class="nav-extra">赞助作者</button>
   </nav>
 
   <!-- 最近记录 -->
@@ -460,6 +481,32 @@ code{font-family:ui-monospace,"Cascadia Mono",Consolas,monospace;font-size:.9em;
     </div>
 
   </section>
+
+  <!-- 赞助作者：不单独开页，就在这里当一个页签。收款码由后端 /qr/*.png 按二进制发出，
+       不进 HTML——页面里塞 14 万字节 base64 会让这个文件没法读 -->
+  <section id="sponsor">
+    <div class="page-head">
+      <h2>赞助作者</h2>
+      <span class="count">完全自愿，与软件功能无关</span>
+    </div>
+    <div class="panel sp">
+      <p class="sp-lead">SmsSink <b>没有广告，不做云端中转，也不收集你的短信内容</b>——它只在你的电脑上安静地待着，收到短信就弹一张卡片。</p>
+      <p class="sp-lead">如果它确实帮你少跑了几趟手机、少手动抄过几次验证码，可以请我喝杯咖啡。不请也完全没关系，功能一样用。</p>
+      <div class="sp-codes">
+        <figure class="sp-code">
+          <span class="tag wx">微信支付</span>
+          <img src="/qr/wechat.png" alt="微信收款码" width="200" height="200">
+          <figcaption>用微信扫一扫</figcaption>
+        </figure>
+        <figure class="sp-code">
+          <span class="tag ali">支付宝</span>
+          <img src="/qr/alipay.png" alt="支付宝收款码" width="200" height="200">
+          <figcaption>用支付宝扫一扫</figcaption>
+        </figure>
+      </div>
+      <p class="hint">打赏不解锁任何功能，也不影响后续版本。真觉得不好用，去 Issues 骂我也比打赏有用。</p>
+    </div>
+  </section>
 </div>
 
 <div id="toast"></div>
@@ -494,12 +541,21 @@ $('gateToken').addEventListener('keydown', e => { if(e.key==='Enter') $('gateOk'
 // 切页签即拉一次数据：常驻程序一直在收短信，页面上的列表是上一次渲染的快照。
 // 切回列表要重新请求，否则会看到「刚收到的那条还没出现」。筛选条件与页码保留，不清空。
 const PANE_LOAD = { recent: () => loadRecent(), stats: () => loadStats(), settings: () => loadSettings() };
+function openTab(name, reload=true){
+  const btn = document.querySelector('nav button[data-tab="'+name+'"]'), sec = $(name);
+  if(!btn || !sec) return false;
+  document.querySelectorAll('nav button').forEach(x => x.classList.remove('on'));
+  document.querySelectorAll('section').forEach(x => x.classList.remove('on'));
+  btn.classList.add('on'); sec.classList.add('on');
+  const load = PANE_LOAD[name];
+  // 首次进页面时 boot() 已经把四个面板都拉过一遍，不用再请求
+  if(reload && load) load().catch(e => { if(e.message!=='unauthorized') tip('刷新失败：'+e.message); });
+  return true;
+}
 document.querySelectorAll('nav button').forEach(b => b.onclick = () => {
-  document.querySelectorAll('nav button').forEach(x=>x.classList.remove('on'));
-  document.querySelectorAll('section').forEach(x=>x.classList.remove('on'));
-  b.classList.add('on'); $(b.dataset.tab).classList.add('on');
-  const load = PANE_LOAD[b.dataset.tab];
-  if(load) load().catch(e => { if(e.message!=='unauthorized') tip('刷新失败：'+e.message); });
+  openTab(b.dataset.tab);
+  // 页签写进地址栏：刷新后还停在同一个面板，也能从托盘菜单直接跳过来（开的是 #sponsor）
+  if(location.hash !== '#'+b.dataset.tab) history.replaceState(null, '', '#'+b.dataset.tab);
 });
 
 // 手机上要填的地址必须是"手机能访问到的那个"。电脑常有多张网卡（WiFi + 有线 + 虚拟网卡），
@@ -541,6 +597,8 @@ async function boot(){
     IPS = STATE.local_ips || []; ipPick = 0; renderHook();
     $('gate').style.display='none';
     await Promise.all([loadRecent(), loadRules(), loadStats(), loadSettings()]);
+    // 托盘「赞助作者」开的是 /?token=…#sponsor；四个面板已在上面拉过，这里只切显示
+    if(location.hash) openTab(location.hash.slice(1), false);
   }catch(e){ showGate('无法连接接收端：'+e.message); }
 }
 
