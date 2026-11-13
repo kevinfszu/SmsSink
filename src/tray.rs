@@ -23,6 +23,7 @@ const MENU_RELOAD: usize = 4;
 const MENU_AUTOSTART: usize = 5;
 const MENU_LAUNCH: usize = 6;
 const MENU_EXIT: usize = 7;
+const MENU_SPONSOR: usize = 8;
 /// 「最近验证码」子菜单项 id = 200 + store::recent 返回 Vec 的下标
 const MENU_RECENT_BASE: usize = 200;
 /// 子菜单最多列 3 条：再多就需要滚屏，反而不如直接开管理台
@@ -278,6 +279,8 @@ fn show_menu(hwnd: HWND) {
     // 两者都属于"打开一个页面"，与管理台排在一起，不塞进「设置」。
     win::menu_item(menu, MF_STRING, MENU_TUTORIAL, "使用教程");
     win::menu_item(menu, MF_STRING, MENU_LAUNCH, "产品介绍");
+    // 赞助页同理：也是一个页面，但属于低频，排在三个常用页面之后
+    win::menu_item(menu, MF_STRING, MENU_SPONSOR, "赞助作者");
     win::menu_item(menu, MF_STRING, MENU_TEST, "发送测试通知");
     // 分隔线在这里不只是分组：没有它，「设置」会紧贴上一项，看起来像同一条目
     win::menu_separator(menu);
@@ -327,6 +330,7 @@ fn show_menu(hwnd: HWND) {
         MENU_ADMIN => win::open_url(&admin_url("")),
         MENU_TUTORIAL => win::open_url(&page_url("tutorial")),
         MENU_LAUNCH => win::open_url(&page_url("launch")),
+        MENU_SPONSOR => win::open_url(&page_url("sponsor")),
         MENU_TEST => {
             // 测试通知本身会弹卡片 / Toast，别再叠一个气泡
             unsafe {

@@ -29,6 +29,10 @@ pub fn route(method: &str, path: &str, query: &str, body: &str, token_ok: bool) 
     if path == "/launch" || path == "/launch.html" {
         return Resp::html(200, include_str!("../docs/launch.html").to_string());
     }
+    // 赞助页：只有两张收款码，纯静态、无数据交互。同样内嵌，不依赖网络。
+    if path == "/sponsor" || path == "/sponsor.html" {
+        return Resp::html(200, include_str!("../docs/sponsor.html").to_string());
+    }
     if !path.starts_with("/api/") {
         return err(404, "not found");
     }

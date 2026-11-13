@@ -87,6 +87,14 @@ nav button{
 }
 nav button:hover{color:var(--text-2)}
 nav button.on{color:var(--text);border-bottom-color:var(--accent);font-weight:600}
+/* 赞助作者：不是 tab，不参与高亮切换，靠右单独摆一个弱化入口 */
+nav .nav-extra{
+  margin-left:auto;align-self:center;display:inline-flex;align-items:center;gap:6px;
+  font-size:13px;color:var(--muted);text-decoration:none;
+  padding:5px 11px;border-radius:100px;margin-bottom:0;
+  transition:color .15s var(--ease),background .15s var(--ease);
+}
+nav .nav-extra:hover{color:var(--accent-ink);background:var(--accent-soft)}
 
 section{display:none;animation:fade .18s var(--ease)}
 section.on{display:block}
@@ -260,6 +268,8 @@ code{font-family:ui-monospace,"Cascadia Mono",Consolas,monospace;font-size:.9em;
     <button data-tab="rules">规则管理</button>
     <button data-tab="stats">统计分析</button>
     <button data-tab="settings">设置</button>
+    <!-- 赞助页由本地服务提供（/sponsor），随 exe 一起编进去 -->
+    <a class="nav-extra" href="/sponsor" target="_blank" rel="noopener">赞助作者</a>
   </nav>
 
   <!-- 最近记录 -->

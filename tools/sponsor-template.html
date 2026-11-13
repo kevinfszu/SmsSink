@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>赞助作者 · SmsSink</title>
+<!-- 本页由 tools/make_sponsor.py 从本模板生成，图片以 base64 内嵌（单文件、离线可用）。
+     改样式改这里，改二维码换 docs/img/sponsor-*.png 后重跑脚本，不要直接编辑 docs/sponsor.html。 -->
+<style>
+:root{
+  --bg:#f3f4f6; --card:#fff; --text:#17181c; --muted:#6b7280; --line:#e9ebf0;
+  /* 品牌色都调深了一档：原始 #07C160 / #1677FF 作文字时对比度只有 2.2 / 3.6，读不清 */
+  --wx:#12884f; --ali:#1258cf;
+  --chip-wx:#e7f8ee; --chip-ali:#e8f1ff;
+  --shadow:0 1px 2px rgba(16,24,40,.04),0 14px 36px -14px rgba(16,24,40,.16);
+}
+@media (prefers-color-scheme:dark){
+  :root{
+    --bg:#0e1013; --card:#17191e; --text:#e9ebef; --muted:#9aa0a6; --line:#272b32;
+    --wx:#4fd18b; --ali:#6aa9ff;
+    --chip-wx:#123024; --chip-ali:#122239;
+    --shadow:0 1px 2px rgba(0,0,0,.4),0 14px 36px -14px rgba(0,0,0,.6);
+  }
+}
+*{box-sizing:border-box}
+body{
+  margin:0; min-height:100vh; display:flex; align-items:center; justify-content:center;
+  background:var(--bg); color:var(--text); padding:32px 20px;
+  font:15px/1.7 -apple-system,"Microsoft YaHei UI","PingFang SC","Segoe UI",sans-serif;
+  -webkit-font-smoothing:antialiased;
+}
+.wrap{width:100%; max-width:660px}
+.card{
+  background:var(--card); border:1px solid var(--line); border-radius:20px;
+  padding:34px 30px 28px; text-align:center; box-shadow:var(--shadow);
+}
+.icon{width:64px; height:64px; display:block; margin:0 auto 16px; border-radius:15px}
+h1{font-size:22px; line-height:1.4; font-weight:600; letter-spacing:.2px; margin:0 0 12px}
+.lead{color:var(--muted); font-size:14px; line-height:1.75; margin:0 auto 26px; max-width:33em}
+.lead p{margin:0}
+.lead p + p{margin-top:8px}
+.lead b{color:var(--text); font-weight:600}
+.codes{display:flex; gap:16px; justify-content:center; flex-wrap:wrap}
+.code{
+  flex:1 1 230px; max-width:264px; padding:15px 15px 12px;
+  border:1px solid var(--line); border-radius:16px;
+}
+.chip{
+  display:inline-block; font-size:12.5px; font-weight:600; line-height:1;
+  padding:6px 12px; border-radius:999px; margin-bottom:12px;
+}
+.chip.wx{color:var(--wx); background:var(--chip-wx)}
+.chip.ali{color:var(--ali); background:var(--chip-ali)}
+.code img{width:100%; height:auto; display:block; border-radius:10px}
+.scan{margin:9px 0 0; font-size:12.5px; color:var(--muted)}
+.foot{margin:24px 0 0; font-size:12.5px; color:var(--muted)}
+.foot .sep{margin:0 7px; opacity:.6}
+@media (max-width:520px){
+  body{padding:20px 14px}
+  .card{padding:28px 20px 22px; border-radius:16px}
+  h1{font-size:20px}
+  .codes{gap:12px}
+  .code{flex:1 1 100%; max-width:none}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="card">
+    <img class="icon" src="@@ICON@@" alt="SmsSink">
+    <h1>请作者喝杯咖啡</h1>
+    <div class="lead">
+      <p>SmsSink <b>没有广告，不做云端中转，也不收集你的短信内容</b>——它只在你的电脑上安静地待着，收到短信就弹一张卡片。</p>
+      <p>如果它确实帮你少跑了几趟手机、少手动抄过几次验证码，可以请我喝杯咖啡。不请也完全没关系，功能一样用。</p>
+    </div>
+
+    <div class="codes">
+      <div class="code">
+        <span class="chip wx">微信支付</span>
+        <img src="@@WECHAT@@" alt="微信收款码">
+        <p class="scan">用微信扫一扫</p>
+      </div>
+      <div class="code">
+        <span class="chip ali">支付宝</span>
+        <img src="@@ALIPAY@@" alt="支付宝收款码">
+        <p class="scan">用支付宝扫一扫</p>
+      </div>
+    </div>
+
+    <p class="foot">打赏完全自愿，与软件功能无关<span class="sep">·</span>谢谢你的心意</p>
+  </div>
+</div>
+</body>
+</html>
