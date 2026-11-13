@@ -1,6 +1,6 @@
 [package]
 name = "sms-sink-pc"
-version = "0.3.0"
+version = "0.3.1"
 edition = "2021"
 description = "SmsSink — 被动接收 SmsForwarder 推送，按规则提取验证码并通知"
 build = "build.rs"
