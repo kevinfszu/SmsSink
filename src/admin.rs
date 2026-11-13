@@ -2,7 +2,7 @@
 use crate::app;
 use crate::config::{self, Config, Rule};
 use crate::server::{query_value, Resp};
-use crate::{event, net, rules, store, win};
+use crate::{event, net, rules, store, update, win};
 use regex::Regex;
 use serde_json::{json, Value};
 
@@ -77,6 +77,21 @@ pub fn route(method: &str, path: &str, query: &str, body: &str, token_ok: bool) 
             Err(e) => err(400, &e),
         },
         ("POST", "/api/autostart") => autostart(body),
+        // 打开管理台就等于「有人在场」，正好顺手问一次版本：过期了才会真发请求，
+        // 而且走后台线程，不会拖慢这次响应
+        ("GET", "/api/update") => {
+            update::maybe_check();
+            Resp::json(200, update::status().to_string())
+        }
+        ("POST", "/api/update/check") => Resp::json(200, update::check_now().to_string()),
+        ("POST", "/api/update/skip") => {
+            let v = match body_json(body) {
+                Ok(v) => v,
+                Err(e) => return e,
+            };
+            let version = v.get("version").and_then(Value::as_str).unwrap_or("");
+            Resp::json(200, update::skip(version).to_string())
+        }
         ("POST", "/api/test-notify") => {
             let hwnd = event::UI_HWND.load(std::sync::atomic::Ordering::SeqCst);
             if hwnd != 0 {
@@ -124,6 +139,7 @@ fn state() -> Resp {
             "mask_content": cfg.mask_content,
             "keep_unmatched": cfg.keep_unmatched,
             "history_limit": cfg.history_limit,
+            "check_update": cfg.check_update,
         })
         .to_string(),
     )
@@ -202,6 +218,9 @@ fn put_settings(body: &str) -> Resp {
     }
     if let Some(x) = v.get("keep_unmatched").and_then(Value::as_bool) {
         cfg.keep_unmatched = x;
+    }
+    if let Some(x) = v.get("check_update").and_then(Value::as_bool) {
+        cfg.check_update = x;
     }
     if let Some(x) = v.get("port").and_then(Value::as_u64) {
         cfg.port = x as u16;

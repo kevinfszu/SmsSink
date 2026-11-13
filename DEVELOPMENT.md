@@ -107,14 +107,14 @@ COM（STA）在 UI 线程初始化，Toast、剪贴板、注册表、托盘都�
 
 | 文件 | 行数 | 职责 | 改这些需求时动它 |
 |---|---|---|---|
-| `main.rs` | 161 | 启动编排、参数、单实例、致命错误提示 | 加启动参数、改启动顺序 |
+| `main.rs` | 163 | 启动编排、参数、单实例、致命错误提示 | 加启动参数、改启动顺序 |
 | `app.rs` | 40 | 全局状态：`Config`（可热重载）+ 重放去重集合 | 加共享状态 |
-| `config.rs` | 246 | 配置结构、路径选择（便携/APPDATA）、令牌生成 | 加配置字段、改默认值 |
-| `server.rs` | 665 | 极简 HTTP/1.1、form/JSON 解析、HMAC 校验、路由、`/ping` | 改协议兼容、加路由、改鉴权 |
+| `config.rs` | 252 | 配置结构、路径选择（便携/APPDATA）、令牌生成 | 加配置字段、改默认值 |
+| `server.rs` | 676 | 极简 HTTP/1.1、form/JSON 解析、HMAC 校验、路由、`/ping` | 改协议兼容、加路由、改鉴权 |
 | `rules.rs` | 141 | 优先级匹配、上下文正则提取、试跑预览 | 改匹配逻辑、加规则字段 |
 | `event.rs` | 163 | HTTP 线程 → UI 线程投递、落盘/复制/通知分发 | 加一种通知方式、改落盘策略 |
 | `store.rs` | 322 | SQLite 单连接 + Mutex、统计、CSV、保留期清理 | 加表字段、加统计维度 |
-| `admin.rs` | 277 | 管理台 API + 四个内嵌页面路由 | 加 API、改页面路由 |
+| `admin.rs` | 309 | 管理台 API + 四个内嵌页面路由 | 加 API、改页面路由 |
 | `tray.rs` | 461 | 托盘图标、右键菜单、消息泵、菜单动作回执 | 改菜单结构、加菜单项 |
 | `card.rs` | 1350 | 自绘右下角卡片：验证码 36px、自绘按钮、倒计时、悬停暂停 | 改卡片版式/交互 |
 | `toast.rs` | 145 | WinRT Toast + 复制/打开按钮的回调 | 改通知中心行为 |
@@ -122,7 +122,9 @@ COM（STA）在 UI 线程初始化，Toast、剪贴板、注册表、托盘都�
 | `font.rs` | 97 | 字体选型（中英同一套字形）、按 DPI 建字体 | 改字体 |
 | `win.rs` | 1001 | 手写 Win32 FFI + 少量封装（剪贴板/自启/URL/错误框/菜单） | 加 Win32 调用 |
 | `net.rs` | 257 | 局域网 IPv4 枚举，给管理台提供候选地址 | 改地址排序/过滤规则 |
-| `assets/index.html` | 736 | 管理台单页（记录/规则/统计/设置），无框架 | 改管理台界面 |
+| `http.rs` | 301 | 唯一出站通道：WinHTTP GET，走系统代理 | 换请求方式、加第二种出站请求（先读 5.1） |
+| `update.rs` | 338 | 版本检查：节流、解析 GitHub release、`update.json` 缓存 | 改提示策略、换检查地址 |
+| `assets/index.html` | 885 | 管理台单页（记录/规则/统计/设置/赞助），无框架 | 改管理台界面 |
 | `assets/sponsor-wechat.png`<br>`assets/sponsor-alipay.png` | 图 | 两张收款码，由 `/qr/*.png` 按二进制发给管理台 | 换收款码（→ 6.8） |
 | `build.rs` | — | 把图标、manifest、版本信息写进 exe 资源 | 改资源版本规则 |
 
@@ -152,9 +154,22 @@ COM（STA）在 UI 线程初始化，Toast、剪贴板、注册表、托盘都�
 
 每一条都曾是 bug 或体验事故的产物，改动前先理解代价。
 
-### 5.1 只做接收端，永不主动连接
+### 5.1 只做接收端，唯一的出站请求是查新版本
 
-整个程序没有任何出站请求（`net.rs` 的 UDP `connect` 不发包，只用来问本机路由）。好处是零云端依赖、隐私可核对；代价是必须和手机端在同一局域网，且依赖用户配通防火墙——所以有了 `/ping`、`scripts/fix-firewall.ps1` 和一堆"连不上"的排障文案。
+程序本身不主动连接任何服务（`net.rs` 的 UDP `connect` 不发包，只用来问本机路由）。好处是零云端依赖、隐私可核对；代价是必须和手机端在同一局域网，且依赖用户配通防火墙——所以有了 `/ping`、`scripts/fix-firewall.ps1` 和一堆"连不上"的排障文案。
+
+唯一的例外是 `update.rs` 的版本检查（设置里可以关掉，`check_update`）。四条约束，动它之前先看：
+
+| 约束 | 为什么 |
+|---|---|
+| 只在打开管理台时触发 | 没人看的时候查出结果也没人看，还白耗流量。所以没有常驻轮询线程 |
+| 成功问过之后 24 小时内不再问 | 未鉴权的 GitHub API 按 IP 限 60 次/小时，别给用户惹麻烦。时间戳落 `update.json` |
+| 失败一律静默，且**不**写"已检查"时间戳 | 国内直连 `api.github.com` 常年不通。写进去等于一次断网就把提示压一天 |
+| 走系统代理 | 用户多半挂着 Clash / 公司代理；自带根证书的客户端反而默认不认系统代理 |
+
+HTTPS 用的是系统自带的 WinHTTP（`http.rs`，`#[link(name = "winhttp")]`），不引 ureq / rustls：省 1.5–2 MiB 体积，也省掉一套要跟着更新的根证书。检查地址可以用 `config.json` 的 `update_url` 换成同结构的镜像；联调时指向 `http://127.0.0.1:PORT/latest.json` 就能离线验证（见 7.8）。
+
+`http.rs::get` 目前只服务这一个用途。**要加第二个出站请求前先回来读这段**——一旦多了"上报""同步"之类的行为，上面这条隐私承诺连同官网的说法就都得改。
 
 ### 5.2 加签要兼容三种编码形态
 
@@ -400,7 +415,30 @@ curl.exe -s --noproxy '*' -H "X-SmsSink-Token: dev-token" \
 
 `docs/launch.html` 是自包含单文件，直接双击打开即可，不需要起服务器（唯一的外链是同目录的 `tutorial.html`，两者放在一起就正常）。
 
-### 7.7 故障对照
+### 7.7 离线验证版本检查
+
+不要真的去改 GitHub 的 release 来试横幅。起一个假 GitHub，把 `update_url` 指过去：
+
+```bash
+# 1. 造一个假的 release 响应
+mkdir -p /tmp/mock && cat > /tmp/mock/latest.json <<'EOF'
+{"tag_name":"v9.9.9","html_url":"https://github.com/kevinfszu/SmsSink/releases","published_at":"2026-11-20T08:30:00Z"}
+EOF
+python -m http.server 18999 --bind 127.0.0.1 --directory /tmp/mock
+
+# 2. 隔离实例的 config.json 里加一行（APPDATA 指到临时目录，别动自己的配置，见 7.2）
+#    "update_url": "http://127.0.0.1:18999/latest.json"
+
+# 3. 打开管理台，或直接问 API
+curl.exe -s --noproxy '*' -X POST "http://127.0.0.1:8787/api/update/check?token=<令牌>"
+# {"current":"0.3.0","latest":"9.9.9","available":true,...}
+```
+
+三个状态都值得走一遍：`latest` 比当前高 → 顶部出横幅；点「忽略此版本」→ `skipped` 记下版本、横幅消失；把假响应的版本再抬高 → 横幅回来。把 python 关掉再点「检查更新」，应得到 `"error":"连不上服务器（WinHTTP 12029）"` 而不是超时卡死。
+
+`checking: true` 说明后台线程正在跑，2–3 秒后再问一次就有结果。检查结果缓存在配置同目录的 `update.json`，改测试数据后要顺手删掉它（或等 24 小时）才会真正重问。
+
+### 7.8 故障对照
 
 | 现象 | 先查什么 |
 |---|---|
@@ -411,6 +449,7 @@ curl.exe -s --noproxy '*' -H "X-SmsSink-Token: dev-token" \
 | 双击 exe 没反应 | 多半是已有实例在跑；看托盘提示条有没有弹「已在运行」 |
 | Toast 不弹只进通知中心 | 预期行为，见 5.4；改用 `notify: "card"` |
 | 菜单动作没回执 | `hint.rs` 的窗口是否创建失败（看 stderr） |
+| 一直不提示新版本 | `update.json` 的 `checked_at` 是不是刚被更新过；`check_update` 是否被关；设置页点「检查更新」看它报什么错 |
 
 ---
 

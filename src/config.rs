@@ -107,6 +107,10 @@ pub struct Config {
     pub db_path: String,
     /// 管理台「最近记录」单次查询上限
     pub history_limit: usize,
+    /// 打开管理台时顺手问一次 GitHub 有没有新版本（每天最多一次，只发一个 GET）
+    pub check_update: bool,
+    /// 更新检查地址；留空用 GitHub API，可以换成同结构的镜像
+    pub update_url: String,
 }
 
 impl Default for Config {
@@ -126,6 +130,8 @@ impl Default for Config {
             mask_content: false,
             db_path: String::new(),
             history_limit: 200,
+            check_update: true,
+            update_url: String::new(),
         }
     }
 }

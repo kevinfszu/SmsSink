@@ -211,6 +211,18 @@ tbody tr.detail:hover td{background:var(--panel-2)}
 .sp-code figcaption{font-size:12px;color:var(--muted)}
 /* 注脚与上面的码拉开距离，用一条细线代替留白，居中时才有个收尾 */
 .sp-note{margin:24px 0 0;padding-top:16px;border-top:1px solid var(--line);font-size:12px;color:var(--muted);line-height:1.7;text-align:center;text-wrap:balance}
+/* ---------- 新版本提示：压在页头与页签之间的一条窄横条 ---------- */
+.update{
+  display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+  margin:-4px 0 16px;padding:9px 12px 9px 14px;border-radius:var(--r-sm);
+  background:var(--accent-soft);color:var(--accent-ink);font-size:13px;
+}
+/* .update 用了 display:flex，会盖掉 hidden 自带的 display:none，得自己补一条 */
+.update[hidden]{display:none}
+.update b{font-weight:600}
+/* 版本号等宽：0.3.10 与 0.3.1 宽度不同，不等宽时日期会跟着左右跳 */
+.update b .mono{font-variant-numeric:tabular-nums}
+.update-meta{color:var(--muted);font-size:12px}
 .clip{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 tbody .btn.rowcopy{background:transparent;border-color:transparent;color:var(--faint)}
 tbody tr:hover .btn.rowcopy{background:var(--panel);border-color:var(--line-strong);color:var(--text)}
@@ -292,6 +304,15 @@ code{font-family:ui-monospace,"Cascadia Mono",Consolas,monospace;font-size:.9em;
       <span class="pill"><i class="dot"></i><span id="statusText">连接中…</span></span>
     </div>
   </header>
+
+  <!-- 新版本提示：只有真的检测到更高版本才出现，其余时候完全不存在 -->
+  <div class="update" id="updateBar" hidden>
+    <b>新版本 <span class="mono" id="updateVer">—</span> 可用</b>
+    <span class="update-meta" id="updateMeta"></span>
+    <div class="spacer"></div>
+    <a class="btn sm primary" id="updateGo" href="https://github.com/kevinfszu/SmsSink/releases" target="_blank" rel="noopener">去下载</a>
+    <button class="btn sm ghost" id="updateSkip">忽略此版本</button>
+  </div>
 
   <nav>
     <button data-tab="recent" class="on">最近记录</button>
@@ -487,6 +508,20 @@ code{font-family:ui-monospace,"Cascadia Mono",Consolas,monospace;font-size:.9em;
       <p class="hint" id="hookHint"></p>
     </div>
 
+    <div class="panel">
+      <h2>版本</h2>
+      <div class="row">
+        <span class="muted" style="font-size:13px">当前版本 <b class="mono" id="verNow" style="color:var(--text)">—</b></span>
+        <div class="spacer"></div>
+        <button class="btn" id="btnUpdateCheck">检查更新</button>
+      </div>
+      <div class="row" style="margin-top:14px">
+        <!-- 隐私说明写进标签里而不是下面那行提示：提示位要留给检查结果 -->
+        <label class="check"><input id="s_check_update" type="checkbox"> 自动检查新版本（每天最多一次，只取版本号，不上报其它信息）</label>
+      </div>
+      <p class="hint" id="updateHint" style="margin-top:10px">尚未检查。</p>
+    </div>
+
   </section>
 
   <!-- 赞助作者：不单独开页，就在这里当一个页签。收款码由后端 /qr/*.png 按二进制发出，
@@ -606,6 +641,8 @@ async function boot(){
     IPS = STATE.local_ips || []; ipPick = 0; renderHook();
     $('gate').style.display='none';
     await Promise.all([loadRecent(), loadRules(), loadStats(), loadSettings()]);
+    // 版本检查独立跑：它可能要发一次网络请求，不该拖住上面四个面板的渲染
+    loadUpdate(true);
     // 托盘「赞助作者」开的是 /?token=…#sponsor；四个面板已在上面拉过，这里只切显示
     if(location.hash) openTab(location.hash.slice(1), false);
   }catch(e){ showGate('无法连接接收端：'+e.message); }
@@ -761,6 +798,8 @@ async function loadSettings(){
   $('s_card_seconds').value=s.card_seconds; $('s_toast_limit').value=s.toast_limit;
   $('s_retention_days').value=s.retention_days; $('s_mask_content').checked=s.mask_content;
   $('s_keep_unmatched').checked=s.keep_unmatched; $('s_autostart').checked=s.autostart;
+  $('s_check_update').checked = s.check_update !== false;
+  $('verNow').textContent = 'v' + (s.version || '');
   $('s_secret').value = s.secret || '';
   $('btnSecretShow').textContent = '显示';
   // 网卡热插拔（插网线、连 VPN）后再次进设置页就能拿到新候选；原来的选择还有效就留着
@@ -772,6 +811,7 @@ $('btnSettingsSave').onclick = async ()=>{
     card_seconds:Number($('s_card_seconds').value),toast_limit:Number($('s_toast_limit').value),
     retention_days:Number($('s_retention_days').value),mask_content:$('s_mask_content').checked,
     keep_unmatched:$('s_keep_unmatched').checked,
+    check_update:$('s_check_update').checked,
     secret:$('s_secret').value.trim()};
   try{ const a=await api('/api/settings',{method:'POST',body:JSON.stringify(p)});
     await api('/api/autostart',{method:'POST',body:JSON.stringify({enabled:$('s_autostart').checked})});
@@ -797,6 +837,58 @@ $('btnCopyHook').onclick = async ()=>{
   const v = $('hookUrl').value;
   try{ await navigator.clipboard.writeText(v); tip('已复制 Webhook 地址'); }
   catch(e){ $('hookUrl').select(); document.execCommand('copy'); tip('已复制 Webhook 地址'); }
+};
+
+/* ---------- 新版本 ---------- */
+/* 横幅只在 available 时存在：没有新版就没有这条元素，不占位也不留空缝 */
+function renderUpdate(u){
+  $('updateBar').hidden = !(u && u.available);
+  if(u && u.available){
+    $('updateVer').textContent = 'v' + (u.latest || '');
+    $('updateMeta').textContent = u.published ? u.published + ' 发布' : '';
+    $('updateGo').href = u.url || 'https://github.com/kevinfszu/SmsSink/releases';
+  }
+  $('updateHint').textContent = updateSummary(u);
+}
+function updateSummary(u){
+  if(!u) return '检查结果未知。';
+  if(u.available) return '发现新版本 v' + u.latest + '，点上方「去下载」覆盖安装即可，配置与历史记录都会保留。';
+  // 走过「忽略此版本」之后 latest 仍然更高，不能笼统说「已是最新」
+  if(u.latest && verNewer(u.latest, u.current)) return 'v' + u.latest + ' 已被忽略。想重新看到提示，点上面的「检查更新」。';
+  if(u.error) return '上次检查失败：' + u.error + '。国内网络常连不上 api.github.com，可以直接去 GitHub 的 Release 页看。';
+  if(u.latest) return '已是最新版本 v' + u.current + '。';
+  return '还没有检查过。';
+}
+// 三段式比大小，和 update.rs 的 parse_version 保持同样的宽松度
+function verParts(v){
+  return String(v || '').replace(/^v/i, '').split(/[-+]/)[0].split('.').map(n => parseInt(n, 10) || 0);
+}
+function verNewer(a, b){
+  const x = verParts(a), y = verParts(b);
+  for(let i = 0; i < 3; i++){ if((x[i]||0) !== (y[i]||0)) return (x[i]||0) > (y[i]||0); }
+  return false;
+}
+// after=true 时，如果后台检查还没回来，就等它一下再看一眼，避免刚开页面时横幅不出现
+async function loadUpdate(after){
+  let u;
+  try{ u = await api('/api/update'); }catch(e){ return; }
+  renderUpdate(u);
+  if(u.checking && after) setTimeout(() => loadUpdate(false), 2500);
+}
+$('updateSkip').onclick = async ()=>{
+  const v = $('updateVer').textContent.replace(/^v/, '');
+  try{ renderUpdate(await api('/api/update/skip', {method:'POST', body:JSON.stringify({version:v})})); }
+  catch(e){ tip('操作失败：' + e.message); }
+};
+$('btnUpdateCheck').onclick = async ()=>{
+  const b = $('btnUpdateCheck');
+  b.disabled = true; b.textContent = '检查中…';
+  try{
+    const u = await api('/api/update/check', {method:'POST', body:'{}'});
+    renderUpdate(u);
+    tip(u.available ? '发现新版本 v' + u.latest : (u.error ? '检查失败：' + u.error : '已是最新版本'));
+  }catch(e){ $('updateHint').textContent = '检查失败：' + e.message; }
+  finally{ b.disabled = false; b.textContent = '检查更新'; }
 };
 
 boot();

@@ -10,12 +10,14 @@ mod config;
 mod event;
 mod font;
 mod hint;
+mod http;
 mod net;
 mod rules;
 mod server;
 mod store;
 mod toast;
 mod tray;
+mod update;
 mod win;
 
 use std::net::TcpListener;

@@ -35,6 +35,8 @@ Docs: [project site](https://kevinfszu.github.io/SmsSink/) · [10-minute walkthr
 
 **免安装**：下载 `-portable.zip`，解压后直接运行。便携版只要 exe 旁边存在 `config.json` 就继续用它，程序和配置可以整体搬走。
 
+**升级**：没有自动更新器，直接下新版安装包覆盖安装即可（配置和短信记录在 `%APPDATA%\SmsSink`，不受影响）。装着的旧版本会在管理台顶部提示「有新版本」——打开管理台时向 GitHub 问一句最新版本号，每天最多一次，可以在「设置 → 版本」里关掉。
+
 **从源码构建**：
 
 ```powershell
