@@ -274,14 +274,16 @@ fn show_menu(hwnd: HWND) {
     win::menu_popup(menu, recent_menu, "最近验证码");
     win::menu_separator(menu);
 
+    // 上半组是"在这里就能做完的动作"，下半组是"打开一个页面"，用分隔线分开。
     win::menu_item(menu, MF_STRING, MENU_ADMIN, "打开管理台");
-    // 刚装好、还没配手机端的人第一件事是看教程；介绍页则是给"要不要用"的人看的。
-    // 两者都属于"打开一个页面"，与管理台排在一起，不塞进「设置」。
-    win::menu_item(menu, MF_STRING, MENU_TUTORIAL, "使用教程");
-    win::menu_item(menu, MF_STRING, MENU_LAUNCH, "产品介绍");
-    // 赞助页同理：也是一个页面，但属于低频，排在三个常用页面之后
-    win::menu_item(menu, MF_STRING, MENU_SPONSOR, "赞助作者");
     win::menu_item(menu, MF_STRING, MENU_TEST, "发送测试通知");
+    win::menu_separator(menu);
+
+    // 三个页面按"先搞懂是什么 → 再照着配 → 最后才是打赏"排：
+    // 新用户第一眼需要的是产品介绍，不是教程；赞助永远排最后。
+    win::menu_item(menu, MF_STRING, MENU_LAUNCH, "产品介绍");
+    win::menu_item(menu, MF_STRING, MENU_TUTORIAL, "使用教程");
+    win::menu_item(menu, MF_STRING, MENU_SPONSOR, "赞助作者");
     // 分隔线在这里不只是分组：没有它，「设置」会紧贴上一项，看起来像同一条目
     win::menu_separator(menu);
 
