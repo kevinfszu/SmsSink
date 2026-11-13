@@ -152,6 +152,9 @@ label{display:block;font-size:12px;color:var(--muted);margin-bottom:6px}
 .btn.ghost:hover{background:var(--panel-2);color:var(--text)}
 .btn.danger{background:transparent;border-color:transparent;color:var(--danger)}
 .btn.danger:hover{background:var(--danger-soft);color:var(--danger)}
+/* 版本面板里的外链：用 accent 色说明"这能点"，hover 加下划线；不抢旁边按钮的分量 */
+.btn.link{background:transparent;border-color:transparent;color:var(--accent-ink);padding:0 4px}
+.btn.link:hover{background:transparent;border-color:transparent;color:var(--accent-hover);text-decoration:underline}
 .btn[disabled]{opacity:.5;pointer-events:none}
 
 /* ---------- 表格：只有横线，没有竖线 ---------- */
@@ -529,6 +532,8 @@ code{font-family:ui-monospace,"Cascadia Mono",Consolas,monospace;font-size:.9em;
       <div class="row">
         <span class="muted" style="font-size:13px">当前版本 <b class="mono" id="verNow" style="color:var(--text)">—</b></span>
         <div class="spacer"></div>
+        <!-- 检查失败时文案会让人「去 Release 页看」，那就得真有地方可点 -->
+        <a class="btn link" id="btnReleases" href="https://github.com/kevinfszu/SmsSink/releases" target="_blank" rel="noopener">打开发布页</a>
         <button class="btn" id="btnUpdateCheck">检查更新</button>
       </div>
       <div class="row" style="margin-top:14px">
@@ -886,7 +891,7 @@ function updateSummary(u){
   if(u.available) return '发现新版本 v' + u.latest + '，点上方「去下载」覆盖安装即可，配置与历史记录都会保留。';
   // 走过「忽略此版本」之后 latest 仍然更高，不能笼统说「已是最新」
   if(u.latest && verNewer(u.latest, u.current)) return 'v' + u.latest + ' 已被忽略。想重新看到提示，点上面的「检查更新」。';
-  if(u.error) return '上次检查失败：' + u.error + '。国内网络常连不上 api.github.com，可以直接去 GitHub 的 Release 页看。';
+  if(u.error) return '上次检查失败：' + u.error + '。国内网络常连不上 api.github.com，点上面的「打开发布页」也能看。';
   if(u.latest) return '已是最新版本 v' + u.current + '。';
   return '还没有检查过。';
 }

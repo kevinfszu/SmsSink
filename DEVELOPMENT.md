@@ -124,7 +124,7 @@ COM（STA）在 UI 线程初始化，Toast、剪贴板、注册表、托盘都�
 | `net.rs` | 257 | 局域网 IPv4 枚举，给管理台提供候选地址 | 改地址排序/过滤规则 |
 | `http.rs` | 301 | 唯一出站通道：WinHTTP GET，走系统代理 | 换请求方式、加第二种出站请求（先读 5.1） |
 | `update.rs` | 338 | 版本检查：节流、解析 GitHub release、`update.json` 缓存 | 改提示策略、换检查地址 |
-| `assets/index.html` | 928 | 管理台单页（记录/规则/统计/设置/赞助），无框架 | 改管理台界面 |
+| `assets/index.html` | 933 | 管理台单页（记录/规则/统计/设置/赞助），无框架 | 改管理台界面 |
 | `assets/sponsor-wechat.png`<br>`assets/sponsor-alipay.png` | 图 | 两张收款码，由 `/qr/*.png` 按二进制发给管理台 | 换收款码（→ 6.8） |
 | `build.rs` | — | 把图标、manifest、版本信息写进 exe 资源 | 改资源版本规则 |
 
