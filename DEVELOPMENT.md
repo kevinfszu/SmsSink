@@ -464,6 +464,34 @@ git push origin v0.3.0
 # 4. 等 Actions 跑完，Release 自动带两个产物和更新说明
 ```
 
+**Release 的「本次更新」要手工补一次。** `release.yml` 里的 `body` 是固定的安装说明，只能拼出 GitHub 自动生成的 `**Full Changelog**` 链接，读不出「这一版到底变了什么」。发完之后用 PATCH 把摘要插到安装说明前面：
+
+```bash
+TOKEN=$(printf 'protocol=https\nhost=github.com\n\n' | git credential fill | sed -n 's/^password=//p')
+# 先取 release id
+curl -s -H "Authorization: token $TOKEN" https://api.github.com/repos/kevinfszu/SmsSink/releases/latest
+# 再把 {"body": "..."} 写进临时文件提交（body 里保留安装说明与 compare 链接）
+curl -s -X PATCH -H "Authorization: token $TOKEN" -H "Content-Type: application/json" \
+  --data-binary @/tmp/relbody.json https://api.github.com/repos/kevinfszu/SmsSink/releases/<id>
+```
+
+摘要写「用户能感知到什么」，别罗列 commit：内部改动（CI、重构、文档）只在确实影响使用者时才提。
+
+发完自查三项，两分钟能做完：
+
+```bash
+# 1. latest 是否指向新版本（落地页首屏主按钮就是这个地址，不能写死版本号）
+curl -s -o /dev/null -w '%{http_code} %{redirect_url}\n' https://github.com/kevinfszu/SmsSink/releases/latest
+
+# 2. 按固定文件名能否直接下载（-setup.exe 的名字必须与 release.yml 里一致）
+curl -sIL -o /dev/null -w '%{http_code}\n' https://github.com/kevinfszu/SmsSink/releases/latest/download/SmsSink-<版本>-setup.exe
+
+# 3. 官网页脚版本是否跟着变了（launch.html 里的 vX.Y.Z 是手写的，容易漏）
+curl -s https://kevinfszu.github.io/SmsSink/ | grep -o 'v[0-9]\+\.[0-9]\+\.[0-9]\+'
+```
+
+下载下来的安装包用右键属性看一眼版本，`FileVersion` 应该是 `X.Y.Z.0`——`build.ps1` 会校验这一步，但如果是在本机手工编译的，值得再确认一遍。
+
 **版本号只有一处真相**：`Cargo.toml` 的 `version`。`build.rs` 拿它生成 exe 资源版本（`0.3.0` → `0.3.0.0`），`installer/build.ps1` 校验 exe 资源版本与目标一致（防止改了 Cargo.toml 忘记重编译），`release.yml` 首步校验 tag 名与之一致（防止 tag 打错）。
 
 ### 只要更新官网
