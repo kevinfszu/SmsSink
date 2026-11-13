@@ -131,6 +131,7 @@ fn state() -> Resp {
             "local_ips": local_ips,
             "secret_set": !cfg.secret.is_empty(),
             "secret": cfg.secret.clone(),
+            "secret_hint_off": cfg.secret_hint_off,
             "autostart": win::auto_start_enabled(),
             "rule_count": cfg.rules.len(),
             "card_seconds": cfg.card_seconds,
@@ -203,6 +204,15 @@ fn put_settings(body: &str) -> Resp {
     let mut cfg: Config = guard.clone();
     if let Some(x) = v.get("secret").and_then(Value::as_str) {
         cfg.secret = x.to_string();
+    }
+    // 设上 Secret 就等于上了锁：把「不再提示」清掉。这样以后哪天又清空 Secret，
+    // 「未启用加签」的提醒还能自己回来，不必让用户去翻配置文件。
+    if !cfg.secret.is_empty() {
+        cfg.secret_hint_off = false;
+    }
+    // 显式关闭提醒（提示条上的「不再提示」只发这一个字段）放在复位之后，否则会被上面覆盖
+    if let Some(x) = v.get("secret_hint_off").and_then(Value::as_bool) {
+        cfg.secret_hint_off = x;
     }
     if let Some(x) = v.get("card_seconds").and_then(Value::as_u64) {
         cfg.card_seconds = x;

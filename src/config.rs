@@ -90,6 +90,9 @@ pub struct Config {
     pub hook_path: String,
     /// 与 SmsForwarder Webhook 通道里的 secret 保持一致；留空则关闭校验
     pub secret: String,
+    /// 用户点过管理台上「未启用加签」提示条的「不再提示」。
+    /// 只要 secret 一旦被设上就会自动清回 false，好让「后来又清空 secret」时提醒能回来。
+    pub secret_hint_off: bool,
     pub timestamp_tolerance_secs: i64,
     pub rules: Vec<Rule>,
     pub keep_unmatched: bool,
@@ -120,6 +123,7 @@ impl Default for Config {
             port: DEFAULT_PORT,
             hook_path: DEFAULT_HOOK_PATH.into(),
             secret: String::new(),
+            secret_hint_off: false,
             timestamp_tolerance_secs: 300,
             rules: vec![Rule::default()],
             keep_unmatched: false,

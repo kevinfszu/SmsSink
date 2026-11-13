@@ -211,12 +211,16 @@ tbody tr.detail:hover td{background:var(--panel-2)}
 .sp-code figcaption{font-size:12px;color:var(--muted)}
 /* 注脚与上面的码拉开距离，用一条细线代替留白，居中时才有个收尾 */
 .sp-note{margin:24px 0 0;padding-top:16px;border-top:1px solid var(--line);font-size:12px;color:var(--muted);line-height:1.7;text-align:center;text-wrap:balance}
-/* ---------- 新版本提示：压在页头与页签之间的一条窄横条 ---------- */
+/* ---------- 页头提示条：压在页头与页签之间的一条窄横条 ---------- */
+/* 容器负责外距与两条提示之间的间距：单独出现时不额外留空，两条同现时也不至于贴在一起 */
+.bars{display:flex;flex-direction:column;gap:8px;margin:-4px 0 16px}
 .update{
   display:flex;align-items:center;gap:10px;flex-wrap:wrap;
-  margin:-4px 0 16px;padding:9px 12px 9px 14px;border-radius:var(--r-sm);
+  padding:9px 12px 9px 14px;border-radius:var(--r-sm);
   background:var(--accent-soft);color:var(--accent-ink);font-size:13px;
 }
+/* 未启用加签：同一套结构，换成警告配色。--warn 在明暗两套主题下都过了对比度 */
+.update.warn{background:var(--warn-soft);color:var(--warn)}
 /* .update 用了 display:flex，会盖掉 hidden 自带的 display:none，得自己补一条 */
 .update[hidden]{display:none}
 .update b{font-weight:600}
@@ -305,13 +309,25 @@ code{font-family:ui-monospace,"Cascadia Mono",Consolas,monospace;font-size:.9em;
     </div>
   </header>
 
-  <!-- 新版本提示：只有真的检测到更高版本才出现，其余时候完全不存在 -->
-  <div class="update" id="updateBar" hidden>
-    <b>新版本 <span class="mono" id="updateVer">—</span> 可用</b>
-    <span class="update-meta" id="updateMeta"></span>
-    <div class="spacer"></div>
-    <a class="btn sm primary" id="updateGo" href="https://github.com/kevinfszu/SmsSink/releases" target="_blank" rel="noopener">去下载</a>
-    <button class="btn sm ghost" id="updateSkip">忽略此版本</button>
+  <!-- 页头提示条：两条都按需出现，都在时不占位 -->
+  <div class="bars">
+    <!-- 新版本提示：只有真的检测到更高版本才出现，其余时候完全不存在 -->
+    <div class="update" id="updateBar" hidden>
+      <b>新版本 <span class="mono" id="updateVer">—</span> 可用</b>
+      <span class="update-meta" id="updateMeta"></span>
+      <div class="spacer"></div>
+      <a class="btn sm primary" id="updateGo" href="https://github.com/kevinfszu/SmsSink/releases" target="_blank" rel="noopener">去下载</a>
+      <button class="btn sm ghost" id="updateSkip">忽略此版本</button>
+    </div>
+
+    <!-- Secret 为空 = 完全不校验来源，同 WiFi 的任何设备都能往这台电脑塞短信 -->
+    <div class="update warn" id="secBar" hidden>
+      <b>未启用加签</b>
+      <span class="update-meta">同一 WiFi 下的任何设备都能向这台电脑发送短信</span>
+      <div class="spacer"></div>
+      <button class="btn sm primary" id="secGo">去设置</button>
+      <button class="btn sm ghost" id="secOff">不再提示</button>
+    </div>
   </div>
 
   <nav>
@@ -801,6 +817,7 @@ async function loadSettings(){
   $('s_check_update').checked = s.check_update !== false;
   $('verNow').textContent = 'v' + (s.version || '');
   $('s_secret').value = s.secret || '';
+  renderSec(s);
   $('btnSecretShow').textContent = '显示';
   // 网卡热插拔（插网线、连 VPN）后再次进设置页就能拿到新候选；原来的选择还有效就留着
   IPS = s.local_ips || []; if(ipPick >= IPS.length) ipPick = 0; renderHook();
@@ -832,6 +849,20 @@ $('btnSecretShow').onclick=()=>{
   const el=$('s_secret'); const show = el.type==='password';
   el.type = show ? 'text' : 'password';
   $('btnSecretShow').textContent = show ? '隐藏' : '显示';
+};
+/* ---------- 未启用加签提醒 ---------- */
+/* Secret 为空时 verify() 直接放行（来源、时间窗、重放三样都不查），
+ * 界面上只有标题栏一行小字，双击 exe 的人根本不会注意到，所以单拎一条横条出来 */
+function renderSec(s){
+  $('secBar').hidden = !!(s && s.secret_set) || !!(s && s.secret_hint_off);
+}
+$('secGo').onclick = ()=>{ openTab('settings'); $('s_secret').focus(); };
+$('secOff').onclick = async ()=>{
+  try{
+    await api('/api/settings',{method:'POST',body:JSON.stringify({secret_hint_off:true})});
+    $('secBar').hidden = true;
+    tip('已关闭提醒，配置 Secret 后会自动恢复');
+  }catch(e){ tip('操作失败：'+e.message); }
 };
 $('btnCopyHook').onclick = async ()=>{
   const v = $('hookUrl').value;
