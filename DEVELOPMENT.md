@@ -10,7 +10,7 @@
 
 如果只有五分钟，记住这三条，它们导致的线上问题最多：
 
-1. **改 `docs/*.html` 后必须重新编译 exe。** 教程页和介绍页通过 `include_str!` 编进二进制（`src/admin.rs`），不重编译，已安装用户看到的还是旧页面。
+1. **改 `docs/*.html` 后必须重新编译 exe。** 教程页、介绍页、赞助页通过 `include_str!` 编进二进制（`src/admin.rs`），不重编译，已安装用户看到的还是旧页面。
 2. **HTTP 线程不许碰 UI、剪贴板、Toast。** 一律 `PostMessage` 投给 UI 线程，见 `src/event.rs`。Win32 窗口有线程亲和性，跨线程直接调用会静默失败或死锁。
 3. **给配置加字段必须带默认值。** `Config` / `Rule` 都靠 `#[serde(default)]` 兜底，新字段要在 `Default` 里给出值，否则老用户升级后旧 `config.json` 直接解析失败、回落到全默认配置（表现为"我的规则全没了"）。
 
@@ -114,15 +114,16 @@ COM（STA）在 UI 线程初始化，Toast、剪贴板、注册表、托盘都�
 | `rules.rs` | 141 | 优先级匹配、上下文正则提取、试跑预览 | 改匹配逻辑、加规则字段 |
 | `event.rs` | 163 | HTTP 线程 → UI 线程投递、落盘/复制/通知分发 | 加一种通知方式、改落盘策略 |
 | `store.rs` | 322 | SQLite 单连接 + Mutex、统计、CSV、保留期清理 | 加表字段、加统计维度 |
-| `admin.rs` | 273 | 管理台 API + 三个内嵌页面路由 | 加 API、改页面路由 |
-| `tray.rs` | 457 | 托盘图标、右键菜单、消息泵、菜单动作回执 | 改菜单结构、加菜单项 |
+| `admin.rs` | 277 | 管理台 API + 四个内嵌页面路由 | 加 API、改页面路由 |
+| `tray.rs` | 461 | 托盘图标、右键菜单、消息泵、菜单动作回执 | 改菜单结构、加菜单项 |
 | `card.rs` | 1350 | 自绘右下角卡片：验证码 36px、自绘按钮、倒计时、悬停暂停 | 改卡片版式/交互 |
 | `toast.rs` | 145 | WinRT Toast + 复制/打开按钮的回调 | 改通知中心行为 |
 | `hint.rs` | 277 | 自绘单行提示条（40px 高、2.6 秒、不抢焦点） | 改回执样式 |
 | `font.rs` | 97 | 字体选型（中英同一套字形）、按 DPI 建字体 | 改字体 |
 | `win.rs` | 1001 | 手写 Win32 FFI + 少量封装（剪贴板/自启/URL/错误框/菜单） | 加 Win32 调用 |
 | `net.rs` | 257 | 局域网 IPv4 枚举，给管理台提供候选地址 | 改地址排序/过滤规则 |
-| `assets/index.html` | 726 | 管理台单页（记录/规则/统计/设置），无框架 | 改管理台界面 |
+| `assets/index.html` | 736 | 管理台单页（记录/规则/统计/设置），无框架 | 改管理台界面 |
+| `docs/sponsor.html` | 生成 | 赞助页（两张收款码，base64 内嵌），由 `tools/make_sponsor.py` 从模板生成 | 换收款码、改文案版面 |
 | `build.rs` | — | 把图标、manifest、版本信息写进 exe 资源 | 改资源版本规则 |
 
 ---
@@ -195,9 +196,9 @@ COM（STA）在 UI 线程初始化，Toast、剪贴板、注册表、托盘都�
 
 ### 5.6 页面内嵌进 exe
 
-`admin.rs` 用 `include_str!` 把 `assets/index.html`、`docs/tutorial.html`、`docs/launch.html` 编进二进制。用户把 exe 单独拷走也能看教程。代价见第 0 节第 1 条。
+`admin.rs` 用 `include_str!` 把 `assets/index.html`、`docs/tutorial.html`、`docs/launch.html`、`docs/sponsor.html` 编进二进制。用户把 exe 单独拷走也能看教程。代价见第 0 节第 1 条。
 
-三个页面都是自包含的（图片 base64 内嵌），所以 `docs/launch.html` 有 800KB+、`tutorial.html` 有 1.5MB。改页面时别引入外链图片/CDN——既破坏离线可用，也让 exe 体积之外的加载不可控。
+四个页面都是自包含的（图片 base64 内嵌），所以 `docs/launch.html` 有 800KB+、`tutorial.html` 有 1.5MB、`sponsor.html` 有 140KB。改页面时别引入外链图片/CDN——既破坏离线可用，也让 exe 体积之外的加载不可控。
 
 ### 5.7 单实例 = 互斥体 + 跨进程打招呼
 
@@ -255,7 +256,7 @@ COM（STA）在 UI 线程初始化，Toast、剪贴板、注册表、托盘都�
 | 通道 | 触发 | 生效对象 |
 |---|---|---|
 | GitHub Pages（`pages.yml`） | push 命中 `docs/**` 白名单 | 外部访客 |
-| 内嵌进 exe（`include_str!`） | 重新 `cargo build --release` 并发版 | 已安装用户点「使用教程」/「产品介绍」 |
+| 内嵌进 exe（`include_str!`） | 重新 `cargo build --release` 并发版 | 已安装用户点「使用教程」/「产品介绍」/「赞助作者」 |
 
 配套的纪律：
 
@@ -274,7 +275,24 @@ cargo build --release                # build.rs 会把 ico 编进 exe 资源
 
 图标改完必须重编译，资源是在构建期嵌进去的。
 
-### 6.8 给数据库加字段（当前没有迁移框架）
+### 6.8 改赞助页（换收款码 / 改文案）
+
+页面是生成出来的，不要直接编辑 `docs/sponsor.html`：
+
+```bash
+# 1. 换成新的收款码截图，裁成正方形（保留四周白边，二维码外留白别少于 4 个模块）
+#    覆盖 docs/img/sponsor-wechat.png 与 docs/img/sponsor-alipay.png
+# 2. 改版式或文案，编辑 tools/sponsor-template.html
+# 3. 重新生成（图片会转成 base64 内嵌）
+python tools/make_sponsor.py
+cargo build --release        # 页面是 include_str! 编进去的，不重编译看不到变化
+```
+
+页面在 `/sponsor`，三个入口：托盘右键菜单「赞助作者」、管理台导航右侧、以及直接访问地址。它**没有**加进 `pages.yml` 的发布白名单——收款码只随 exe 分发，不上公开官网。
+
+两个约定：二维码图片必须自带白底（深色模式下也不会反色，扫得出）；品牌色文字用的是调深过的 `--wx` / `--ali`，别换回 `#07C160` / `#1677FF`，那两个原始色作文字对比度只有 2.2 / 3.6。
+
+### 6.9 给数据库加字段（当前没有迁移框架）
 
 `store::init` 只有 `CREATE TABLE IF NOT EXISTS`，没有 schema 版本。加字段的安全做法：
 
@@ -305,6 +323,8 @@ APPDATA='C:/Users/<你>/AppData/Local/Temp/smsdev' ./target/debug/SmsSink.exe --
 ```
 
 `--no-ui` 不弹卡片、不动剪贴板，适合验证链路；想看界面就去掉它（但会影响你的真实托盘，注意分辨两个实例）。
+
+> 坑：如果 exe 同目录残留了 `config.json`，它会**优先于** `APPDATA`（便携版语义），你设的环境变量就被无视了——表现为"端口还是 8787、日志里的配置路径不对"。`target/release/` 下跑过一次 exe 就可能有这个残留，删掉即可。
 
 ### 7.3 造一条合法推送（实测可用）
 
@@ -472,7 +492,7 @@ git push origin v0.3.0
 2. **clippy 未开 `-D warnings`**：现有约 37 条警告，多数是 FFI 类型命名（刻意保留），其余是零散风格问题（`Box<String>`、`assert_eq!(x, true)`、多余的 `as_bytes`）。清零后应把 CI 切成阻断模式（`ci.yml` 里有注释标记）。
 3. **启动时端口预检与真正 bind 之间有一次重复绑定**（→ 第 2 节末尾），窄竞态。
 4. **进程退出后通知中心里的 Toast 按钮失效**：需要实现 COM `INotificationActivationCallback`，属于二期。
-5. **数据库无 schema 版本**：只有 `CREATE TABLE IF NOT EXISTS`，字段多了以后靠 `ALTER` 堆叠会难维护（→ 6.8）。
+5. **数据库无 schema 版本**：只有 `CREATE TABLE IF NOT EXISTS`，字段多了以后靠 `ALTER` 堆叠会难维护（→ 6.9）。
 6. **教程页在 500px 宽度下横向溢出**（`<pre>` 代码块，既有问题，非某次改动引入）。桌面场景不受影响。
 7. **没有自动更新**：用户要自己来 Release 页下载。
 
